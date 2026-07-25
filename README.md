@@ -1,6 +1,6 @@
 # OldWindowsHelpers 📎
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey)](#requisitos)
 
@@ -18,6 +18,7 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 - [Instalación](#instalación)
 - [Uso](#uso)
 - [Compilación a .exe](#compilación-a-exe)
+- [Aviso de antivirus](#aviso-de-antivirus-falso-positivo-conocido)
 - [Versionado](#versionado)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Desarrollo con Claude Code](#desarrollo-con-claude-code)
@@ -30,10 +31,14 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 - **Ventana flotante transparente**: el personaje aparece sin bordes ni fondo
   sobre el escritorio, arrastrable con el mouse.
 - **11 personajes clásicos** listos para usar — los verdaderos "Office
-  Assistant" de Microsoft Office: Clippy, F1, Genius, Links, Merlín y Rocky
-  (alta fidelidad, animaciones nombradas) más Mother Nature, Office Logo,
-  The Dot, Scribble y Power Pup (fidelidad reducida — ver
-  [`specs/SPEC.md`](specs/SPEC.md) 2.1).
+  Assistant" de Microsoft Office. 9 con animaciones completas y nombradas
+  (Clippy, F1, Genius, Links, Merlín, Rocky, Mother Nature, Office Logo y
+  The Dot) y 2 con una sola animación por no haber podido recuperar su
+  archivo original (Scribble, Power Pup) — ver
+  [`specs/SPEC.md`](specs/SPEC.md) 2.1.
+- **Mismo tamaño y sin fleco de color** en todos los personajes, sin
+  importar el tamaño real de su sprite original, y con soporte para
+  pantallas de alto DPI (ver `app/animation.py` y `app/dpi.py`).
 - **Menú de clic derecho** (también disponible en la bandeja del sistema):
   - Cambiar personaje
   - Decime un consejo (con globo de diálogo)
@@ -49,8 +54,9 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 - **Consejos automáticos** cada cierto tiempo, además de bajo demanda.
 - **Multi-idioma** (es/en), detecta el idioma de Windows por defecto.
 - **Sin consola**: corre como app de escritorio pura (`--windowed`).
-- Herramientas para **agregar más personajes** propios (`tools/fetch_assets.py`,
-  `tools/acs_importer.py`).
+- Herramientas para **agregar más personajes** propios, incluyendo un
+  decodificador real del formato `.acs` de Microsoft Agent
+  (`tools/acs_importer.py`, `tools/acs_decoder.py`).
 
 ## Requisitos
 
@@ -72,8 +78,9 @@ Los personajes (sprites) ya vienen incluidos en `assets/agents/`. Si querés
 volver a descargarlos o agregar los que falten:
 
 ```powershell
-python tools/fetch_assets.py         # los 6 de alta fidelidad (clippy.js)
-python tools/fetch_extra_assets.py   # los 5 de fidelidad reducida (Spriters Resource)
+python tools/fetch_assets.py         # 6 de alta fidelidad, via clippy.js
+python tools/fetch_acs_assets.py     # 3 de alta fidelidad, via .acs real decodificado
+python tools/fetch_extra_assets.py   # 2 de fidelidad reducida, via Spriters Resource
 ```
 
 ## Uso
@@ -93,10 +100,40 @@ pip install -r requirements-dev.txt
 python tools/build_exe.py
 ```
 
-Esto corre PyInstaller con `--onefile --windowed`, usa
+Esto corre PyInstaller con `--onefile --windowed --noupx` (más un recurso de
+versión con metadata real, ver "Aviso de antivirus" abajo), usa
 `clippy_icon_136771.ico` como ícono, empaqueta `assets/` y `locales/`, y deja
 **`OldWindowsHelpers.exe` en la misma carpeta que `main.py`** (no abre
 consola, al ser una app gráfica).
+
+## Aviso de antivirus (falso positivo conocido)
+
+Algunos antivirus (Kaspersky en particular) pueden marcar `OldWindowsHelpers.exe`
+como sospechoso, sobre todo al activar **"Iniciar con Windows"** desde el
+menú. Esto es un **falso positivo muy conocido y documentado** en la
+comunidad de PyInstaller: cualquier `.exe` sin firma digital que se auto-
+registra en el arranque de Windows dispara heurísticas antivirus, sin que
+eso signifique que el código sea malicioso. Podés revisar el código fuente
+completo de este repo — es 100% Python legible, sin ofuscar.
+
+Qué hacemos para mitigarlo (sin poder eliminarlo del todo, porque requeriría
+un certificado de firma de código pago):
+
+- Compilamos con `--noupx` (UPX es una técnica de compresión que también usa
+  mucho malware para evadir firmas).
+- El `.exe` incluye metadata de versión real (nombre, descripción, versión) —
+  la mayoría del malware no la tiene.
+- Si igual se bloquea la escritura al registro, la app avisa con un mensaje
+  claro en vez de fallar en silencio, y reintenta activarlo la próxima vez
+  que abrís la app (por si el antivirus lo había borrado sin avisar).
+
+Qué podés hacer vos si tu antivirus lo bloquea:
+
+1. Agregar una excepción puntual para `OldWindowsHelpers.exe` en tu antivirus.
+2. Reportarlo como falso positivo (Kaspersky: https://opentip.kaspersky.com/,
+   subís el archivo y pedís que lo revisen).
+3. Si preferís no arriesgar, no actives "Iniciar con Windows" — el resto de
+   la app funciona igual sin esa opción.
 
 ## Versionado
 
@@ -133,15 +170,18 @@ oldwindowshelpers/
 │   ├── settings.py             # config.json + autoarranque (registro de Windows)
 │   ├── i18n.py                  # traducciones
 │   ├── windows_help.py          # acción "Ayuda de Windows" (F1)
+│   ├── dpi.py                    # DPI awareness (pantallas de escalado alto)
 │   └── resources.py             # rutas de recursos (fuente vs. .exe empaquetado)
 ├── assets/agents/<Nombre>/     # sprite sheet + animaciones de cada personaje
 ├── locales/{es,en}.json          # textos traducidos
 ├── tools/
 │   ├── fetch_assets.py          # descarga/convierte personajes desde clippy.js
-│   ├── fetch_extra_assets.py     # descarga/convierte personajes desde Spriters Resource
-│   ├── acs_importer.py           # importador experimental de .acs propios
-│   ├── bump_version.py            # sube la versión + CHANGELOG
-│   └── build_exe.py                # compila el .exe con PyInstaller
+│   ├── acs_decoder.py             # decodificador real del formato .acs de Microsoft Agent
+│   ├── fetch_acs_assets.py        # descarga/convierte via .acs real (alta fidelidad)
+│   ├── fetch_extra_assets.py       # descarga/convierte via Spriters Resource (fidelidad reducida)
+│   ├── acs_importer.py             # importa un .acs propio (usa acs_decoder.py)
+│   ├── bump_version.py              # sube la versión + CHANGELOG + badge de README
+│   └── build_exe.py                  # compila el .exe con PyInstaller
 ├── tests/                          # pruebas (pytest)
 ├── specs/SPEC.md                    # especificación viva del proyecto (SDD)
 ├── .claude/{agents,skills}/           # agentes y skills de Claude Code
@@ -169,11 +209,14 @@ Los 11 personajes (Clippy, Merlín, Links, Rocky, Genius, F1, Mother Nature,
 Office Logo, The Dot, Scribble y Power Pup) son propiedad de Microsoft
 Corporation; se incluyen únicamente con fines de preservación y nostalgia,
 no comerciales. El código de este repositorio (todo lo que **no** esté en
-`assets/agents/`) es de autoría propia y se licencia en Apache 2.0. Ver
-[`NOTICE`](NOTICE) para el detalle completo y la atribución a
-[clippy.js](https://github.com/clippyjs/clippy.js) y
-[The Spriters Resource](https://www.spriters-resource.com), de donde se
-obtuvieron ya extraídos.
+`assets/agents/`) es de autoría propia y se licencia en Apache 2.0 —
+incluyendo `tools/acs_decoder.py`, un decodificador propio del formato
+binario `.acs`, escrito investigando el formato (no copiando código de
+terceros). Ver [`NOTICE`](NOTICE) para el detalle completo y la atribución a
+[clippy.js](https://github.com/clippyjs/clippy.js),
+[The Spriters Resource](https://www.spriters-resource.com) y al archivo de
+preservación de [archive.org](https://archive.org/details/binder-97-office972000assistants)
+de donde salieron los `.acs` originales.
 
 ## Changelog
 

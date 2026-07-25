@@ -49,8 +49,8 @@ class CharacterWindow:
         if position is None:
             screen_w = self.root.winfo_screenwidth()
             screen_h = self.root.winfo_screenheight()
-            x = screen_w - self.assistant.frame_width - 40
-            y = screen_h - self.assistant.frame_height - 80
+            x = screen_w - self.assistant.display_width - 40
+            y = screen_h - self.assistant.display_height - 80
         else:
             x, y = position
         self.window.geometry(f"+{x}+{y}")

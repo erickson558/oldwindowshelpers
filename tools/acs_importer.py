@@ -1,63 +1,65 @@
-"""Importador EXPERIMENTAL de personajes desde archivos .acs (Microsoft Agent
-Character File) de tu propia instalación/medio de instalación de Office.
+"""Importador de personajes desde archivos .acs (Microsoft Agent Character
+File) propios — por ejemplo, de una instalación o medio de instalación de
+Office que todavía tengas guardado.
 
-Por qué es experimental: .acs es un formato binario propietario de los años
-90, mal documentado públicamente (compresión propia + estructuras internas de
-Microsoft Agent). No existe hoy un parser Python de referencia confiable, y
-reconstruirlo por completo excede el alcance de la v0.1.0 de este proyecto.
+Antes esta herramienta era experimental: solo detectaba si un archivo era un
+.acs válido, sin poder leer su sprite sheet ni sus animaciones (el formato
+parecía demasiado opaco para reverse-engineerlo a ciegas). Se investigó en
+serio — ver tools/acs_decoder.py y specs/SPEC.md 2.3c — y ahora sí puede
+convertir un .acs real a un personaje completo, con la misma fidelidad que
+el resto del roster (animaciones nombradas: Wave, Greeting, Congratulate,
+etc., no una sola animación "Idle").
 
-Qué hace esta versión: detecta si un archivo es un .acs válido (firma/cabecera)
-e informa metadata básica, pero NO extrae el sprite sheet ni las animaciones.
-Si vos (o la comunidad) consiguen o escriben un parser real, este es el punto
-de extensión: `import_acs()` debería terminar generando la misma carpeta
-assets/agents/<Nombre>/{agent.json,map.png} que produce tools/fetch_assets.py
-(mismo esquema, documentado en app/animation.py), para que el resto de la app
-no necesite cambiar nada.
+Uso:
+    python tools/acs_importer.py "C:\\ruta\\a\\CLIPPIT.ACS" NombrePersonaje
 
-Uso actual:
-    python tools/acs_importer.py "C:\\ruta\\a\\CLIPPIT.ACS"
+Si no le das un nombre, usa el nombre del archivo (sin extensión).
 """
 
 import sys
 from pathlib import Path
 
-# Los .acs empiezan con esta firma de 4 bytes (formato RIFF-like usado por
-# Microsoft Agent); nos sirve para dar un diagnóstico honesto en vez de nada.
-ACS_MAGIC = b"\x14\x00\x00\x00"
+import acs_decoder  # módulo hermano en tools/ (no es un paquete con __init__.py)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ASSETS_DIR = PROJECT_ROOT / "assets" / "agents"
 
 
-def inspect_acs(path: Path) -> dict:
-    data = path.read_bytes()
-    looks_like_acs = data[:4] == ACS_MAGIC
-    return {
-        "path": str(path),
-        "size_bytes": len(data),
-        "looks_like_acs": looks_like_acs,
-    }
-
-
-def import_acs(path: Path) -> None:
-    info = inspect_acs(path)
-    print(f"Archivo: {info['path']} ({info['size_bytes']} bytes)")
-    if not info["looks_like_acs"]:
-        print("No parece un archivo .acs válido (firma de cabecera no coincide).")
+def import_acs(path: Path, name: str) -> None:
+    print(f"Archivo: {path} ({path.stat().st_size} bytes)")
+    try:
+        character = acs_decoder.parse_acs_file(str(path))
+    except acs_decoder.AcsParseError as exc:
+        print(f"No se pudo leer como .acs de Microsoft Agent: {exc}")
+        return
+    except Exception as exc:  # noqa: BLE001 - queremos un mensaje claro, no un traceback crudo
+        print(f"Error inesperado decodificando el archivo: {exc}")
+        print(
+            "Si el archivo es válido pero esto falla, puede que use una "
+            "característica no cubierta (ver limitaciones en specs/SPEC.md "
+            "2.3c, ej. el bloque TTS) — revisá tools/acs_decoder.py."
+        )
         return
 
+    dest = ASSETS_DIR / name
+    stats = acs_decoder.build_agent_assets(character, name, dest)
     print(
-        "Se detectó un .acs válido, pero este importador todavía no sabe "
-        "decodificar su sprite sheet ni sus animaciones (ver docstring de este "
-        "archivo). Por ahora, para agregar un personaje nuevo usá "
-        "tools/fetch_assets.py, o armá a mano una carpeta "
-        "assets/agents/<Nombre>/ con agent.json + map.png siguiendo el esquema "
-        "de app/animation.py."
+        f"OK: {name} -> {stats['animation_count']} animaciones, {stats['frame_count']} frames "
+        f"({stats['unique_images']} imagenes unicas) en {dest}"
     )
+    print("Reiniciá la app (o corré python -m pytest tests/ -v) para verlo en el selector de personajes.")
 
 
 def main(argv: list[str]) -> int:
     if not argv:
-        print("Uso: python tools/acs_importer.py <archivo.acs>")
+        print('Uso: python tools/acs_importer.py "C:\\ruta\\a\\ARCHIVO.ACS" [NombrePersonaje]')
         return 1
-    import_acs(Path(argv[0]))
+    path = Path(argv[0])
+    if not path.exists():
+        print(f"No existe el archivo: {path}")
+        return 1
+    name = argv[1] if len(argv) > 1 else path.stem
+    import_acs(path, name)
     return 0
 
 

@@ -35,6 +35,30 @@ from .resources import resource_path
 
 AGENTS_DIR = "assets/agents"
 
+# Altura de pantalla "cómoda" a la que se escala TODO personaje al dibujarlo,
+# sin importar el tamaño original de su sprite sheet. Los 6 personajes de
+# clippy.js miden ~93-128px de alto y los 5 de fidelidad reducida entre 203 y
+# 285px — sin esto, cambiar de personaje pega un salto de tamaño brusco e
+# incómodo en pantallas modernas. Se preserva el aspect ratio de cada uno.
+DISPLAY_HEIGHT = 160
+
+# Por debajo de este valor de alfa, el píxel se vuelve 100% transparente; por
+# encima, 100% opaco. Es necesario "endurecer" así el canal alfa porque la
+# transparencia por color llave de Tkinter (ver app/character_window.py) NO
+# hace blending real: un píxel semitransparente del PNG original (los bordes
+# suavizados/antialiased de cualquier dibujo) se termina mezclando con el
+# fondo mágenta del widget ANTES de que el color-key lo recorte, dejando un
+# halo rosa/mágenta visible alrededor de cada personaje. Binarizar el alfa
+# elimina ese halo a cambio de un borde levemente menos suave — es el
+# trade-off estándar de esta técnica de transparencia.
+ALPHA_HARDEN_THRESHOLD = 140
+
+
+def _harden_alpha(image: Image.Image, threshold: int = ALPHA_HARDEN_THRESHOLD) -> Image.Image:
+    r, g, b, a = image.split()
+    a = a.point(lambda p: 255 if p >= threshold else 0)
+    return Image.merge("RGBA", (r, g, b, a))
+
 
 class Assistant:
     """Un personaje cargado: su sprite sheet completo más el índice de animaciones."""
@@ -49,6 +73,12 @@ class Assistant:
         self.animations: dict[str, list[dict]] = meta["animations"]
         self.sheet = Image.open(agent_dir / meta["sprite"]).convert("RGBA")
         self._frame_cache: dict[tuple[str, int], ImageTk.PhotoImage] = {}
+
+        # Tamaño de despliegue: mismo alto "cómodo" para todos los personajes,
+        # ancho proporcional al aspect ratio real de cada uno.
+        scale = DISPLAY_HEIGHT / self.frame_height
+        self.display_width = max(1, round(self.frame_width * scale))
+        self.display_height = DISPLAY_HEIGHT
 
     @staticmethod
     def available() -> list[str]:
@@ -83,6 +113,15 @@ class Assistant:
             box = (x, y, x + self.frame_width, y + self.frame_height)
             layer = self.sheet.crop(box)
             composed.alpha_composite(layer)
+
+        composed = composed.resize(
+            (self.display_width, self.display_height), Image.LANCZOS
+        )
+        # El resize reintroduce bordes semitransparentes (por el propio
+        # remuestreo) aunque el sheet original ya viniera con alfa binario,
+        # así que se vuelve a endurecer el alfa DESPUÉS de escalar — si se
+        # hiciera antes, el resize lo deshace.
+        composed = _harden_alpha(composed)
 
         photo = ImageTk.PhotoImage(composed)
         self._frame_cache[cache_key] = photo

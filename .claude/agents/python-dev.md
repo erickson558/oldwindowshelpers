@@ -35,4 +35,12 @@ Al implementar:
   corra `/release` cuando esté listo para publicar).
 
 No te encargués de compilar el `.exe` ni de versionar/publicar — eso es
-trabajo del agente `release-manager` / skill `/release`.
+trabajo del agente `release-manager` / skill `/release`. Si lo que te piden
+es corregir un error concreto sin romper nada existente, seguí el proceso
+del skill `/bugfix` (análisis antes que corrección).
+
+Para bugs de renderizado (transparencia, tamaño, color) de la ventana
+flotante: verificalos corriendo la app en vivo, no alcanza con mirar los
+sprites offline con PIL (Tkinter compone la transparencia distinto — ver
+2.2 en `specs/SPEC.md`). Si necesitás capturar pantalla, armá tu propio
+fondo de control en vez de capturar el escritorio real del usuario.

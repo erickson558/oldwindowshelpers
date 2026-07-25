@@ -33,5 +33,7 @@
   "animate.OfficeLogo": "Girando como el viejo logo de Office de los 90.",
   "animate.Dot": "¡Puedo ser la forma que vos quieras que sea!",
   "animate.Scribble": "Un gato de origami, doblado con cariño.",
-  "animate.PowerPup": "¡A salvar el día, con capa y todo!"
+  "animate.PowerPup": "¡A salvar el día, con capa y todo!",
+  "warning.autostart_blocked_title": "No se pudo activar el autoarranque",
+  "warning.autostart_blocked_body": "Windows (o tu antivirus, ej. Kaspersky) bloqueó el cambio en el registro. Es un falso positivo conocido: los .exe hechos con PyInstaller y sin firma digital a veces se marcan como sospechosos solo por auto-registrarse para iniciar con Windows. Podés agregar una excepción para OldWindowsHelpers.exe en tu antivirus, o reportarlo como falso positivo. Ver README para más detalle."
 }

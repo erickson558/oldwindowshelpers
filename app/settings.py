@@ -64,7 +64,16 @@ def _executable_command() -> str:
 
 
 def set_start_with_windows(enabled: bool) -> None:
-    """Crea o borra la entrada en el Run key de HKCU (no requiere admin, solo afecta al usuario actual)."""
+    """Crea o borra la entrada en el Run key de HKCU (no requiere admin, solo
+    afecta al usuario actual).
+
+    Puede fallar con PermissionError/OSError si un antivirus (Kaspersky y
+    similares suelen marcar como sospechosa la combinación de ".exe sin firmar
+    + se auto-registra para iniciar con Windows", un falso positivo muy
+    conocido para ejecutables de PyInstaller — ver tools/build_exe.py y
+    specs/SPEC.md) bloquea la escritura al registro. Se deja propagar la
+    excepción para que quien llame (main.py) pueda avisarle al usuario en vez
+    de fallar en silencio."""
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
         if enabled:
             winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, _executable_command())

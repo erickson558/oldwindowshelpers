@@ -14,6 +14,7 @@ from tkinter import messagebox
 from app import settings
 from app.animation import Assistant
 from app.character_window import CharacterWindow
+from app.dpi import make_process_dpi_aware
 from app.i18n import Translator
 from app.menu_actions import build_context_menu
 from app.signature_actions import get_signature_animation
@@ -42,7 +43,7 @@ class OldWindowsHelpersApp:
         self.language_var = tk.StringVar(value=self.i18n.lang)
         self.always_on_top_var = tk.BooleanVar(value=self.config.get("always_on_top", True))
         self.start_with_windows_var = tk.BooleanVar(
-            value=settings.is_start_with_windows_enabled()
+            value=self._resolve_start_with_windows_state()
         )
 
         self.character_window = CharacterWindow(
@@ -113,9 +114,37 @@ class OldWindowsHelpersApp:
         self.config["language"] = lang
         settings.save(self.config)
 
+    def _resolve_start_with_windows_state(self) -> bool:
+        """Si guardamos que el autoarranque estaba activado pero la entrada
+        del registro ya no está (un antivirus como Kaspersky puede haberla
+        borrado por su cuenta, sin avisarnos — ver settings.py), reintenta
+        una vez de forma silenciosa en vez de simplemente "olvidarse" de la
+        preferencia que el usuario había elegido explícitamente."""
+        currently_set = settings.is_start_with_windows_enabled()
+        wanted = self.config.get("start_with_windows", False)
+        if wanted and not currently_set:
+            try:
+                settings.set_start_with_windows(True)
+                currently_set = settings.is_start_with_windows_enabled()
+            except OSError:
+                currently_set = False
+        return currently_set
+
     def toggle_start_with_windows(self) -> None:
         value = self.start_with_windows_var.get()
-        settings.set_start_with_windows(value)
+        try:
+            settings.set_start_with_windows(value)
+        except OSError:
+            # Lo más probable es un antivirus bloqueando la escritura al
+            # registro (falso positivo conocido con .exe de PyInstaller sin
+            # firmar — ver specs/SPEC.md). Revertimos el checkbox y avisamos
+            # en vez de dejar la UI en un estado inconsistente o crashear.
+            self.start_with_windows_var.set(not value)
+            messagebox.showwarning(
+                self.i18n.t("warning.autostart_blocked_title"),
+                self.i18n.t("warning.autostart_blocked_body"),
+            )
+            return
         self.config["start_with_windows"] = value
         settings.save(self.config)
 
@@ -140,6 +169,7 @@ class OldWindowsHelpersApp:
 
 
 def main() -> int:
+    make_process_dpi_aware()  # antes de crear cualquier ventana, ver app/dpi.py
     app = OldWindowsHelpersApp()
     app.run()
     return 0

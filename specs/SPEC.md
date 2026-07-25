@@ -15,18 +15,30 @@ sino su presencia visual y su espíritu de "ayudante".
 
 ### 2.1 Personajes
 
-**Alta fidelidad** (6 — obtenidos ya extraídos del proyecto open-source
-`clippy.js`, con animaciones nombradas: Wave, Greeting, Congratulate, etc.
-Ver [`NOTICE`](../NOTICE) y `tools/fetch_assets.py`):
+**Alta fidelidad** (9 — animaciones completas y nombradas: Wave, Greeting,
+Congratulate, etc. Ver [`NOTICE`](../NOTICE)):
 
-| Personaje | Rol original en Office Assistant |
-|---|---|
-| Clippy (Clippit) | El clip, el más icónico |
-| F1 | Robot |
-| Genius | Einstein |
-| Links | El gato |
-| Merlin | El mago |
-| Rocky | El perro |
+| Personaje | Rol original en Office Assistant | Fuente |
+|---|---|---|
+| Clippy (Clippit) | El clip, el más icónico | `clippy.js` (`tools/fetch_assets.py`) |
+| F1 | Robot | `clippy.js` |
+| Genius | Einstein | `clippy.js` |
+| Links | El gato | `clippy.js` |
+| Merlin | El mago | `clippy.js` |
+| Rocky | El perro | `clippy.js` |
+| Mother Nature | El globo terráqueo que se transforma en imágenes de la naturaleza | archivo `.acs` real (`tools/fetch_acs_assets.py`) |
+| Office Logo | El logo animado y giratorio de Office 9x | archivo `.acs` real |
+| The Dot | Bolita roja que cambia de forma constantemente | archivo `.acs` real |
+
+Los primeros 6 se obtuvieron ya extraídos del proyecto open-source
+`clippy.js`. Mother Nature, Office Logo y The Dot arrancaron en v0.2.0 como
+"fidelidad reducida" (una sola animación `Idle`, ver 2.3b) y se
+**re-generaron en esta versión** decodificando directamente sus archivos
+`.acs` originales con un decodificador propio (`tools/acs_decoder.py`, ver
+2.3c) — ahora tienen exactamente el mismo nivel de detalle que los primeros
+6 (36-38 animaciones nombradas cada uno: Wave, Greeting, Congratulate,
+GetTechy, GetWizardy, etc.), porque en el fondo son la misma familia de
+plantilla de Microsoft Agent.
 
 Excluidos a propósito del set completo de `clippy.js`:
 
@@ -36,24 +48,24 @@ Excluidos a propósito del set completo de `clippy.js`:
 - **Genie, Peedy**: demos de Microsoft Agent (otra tecnología de Microsoft,
   separada de Office Assistant) — nunca aparecieron dentro de Word/Excel/etc.
 
-**Fidelidad reducida** (5 — investigados e incorporados a partir de The
-Spriters Resource y archive.org, que NO traen animaciones nombradas como
-clippy.js. Ver `tools/fetch_extra_assets.py` y 2.3b más abajo):
+**Fidelidad reducida** (2 — no se consiguió un archivo `.acs` real, solo un
+`.zip` de The Spriters Resource con frames sueltos sin agrupar por
+animación. Ver `tools/fetch_extra_assets.py` y 2.3b):
 
 | Personaje | Descripción | Origen |
 |---|---|---|
-| Mother Nature | El globo terráqueo que se transforma en imágenes de la naturaleza | Office 97 |
-| Office Logo | El logo animado y giratorio de Office 9x | Office 97/XP |
-| The Dot | Bolita roja que cambia de forma constantemente | Office 97 |
 | Scribble | Gato de estilo origami | Office 97 |
 | Power Pup | Perro con disfraz de superhéroe | Office 97 |
 
-Estos 5 tienen una única animación `"Idle"` que reproduce todos sus frames
+Estos 2 tienen una única animación `"Idle"` que reproduce todos sus frames
 en secuencia (no hay forma de saber, a partir de la fuente, qué frames
-formaban `Wave`, `Greeting`, etc. por separado — ver 2.3b). Por eso tampoco
-tienen entrada en `app/signature_actions.py`: "Animar" cae al resguardo
-automático (repite su única animación `Idle`), aunque sí tienen su propia
-frase (`animate.<Nombre>` en `locales/*.json`).
+formaban `Wave`, `Greeting`, etc. por separado). Por eso tampoco tienen
+entrada en `app/signature_actions.py`: "Animar" cae al resguardo automático
+(repite su única animación `Idle`), aunque sí tienen su propia frase
+(`animate.<Nombre>` en `locales/*.json`). Si en el futuro aparece un
+archivo `.acs` real para alguno de los dos (son personajes de Office 97,
+así que es plausible que exista en algún archivo de preservación), se
+pueden re-generar con el mismo proceso de 2.3c que usamos para los otros 3.
 
 **Investigados pero NO incorporados** (fuentes reales encontradas y
 documentadas, para una futura versión):
@@ -93,6 +105,25 @@ documentadas, para una futura versión):
   (`%APPDATA%/OldWindowsHelpers/config.json`).
 - Animación: idle en loop (elige al azar entre las animaciones cuyo nombre
   contiene "Idle"), y animaciones "one-shot" (el resto) al pedir un consejo.
+- **Tamaño consistente**: todo personaje se escala a `DISPLAY_HEIGHT = 160px`
+  de alto (`app/animation.py`), preservando su aspect ratio original. Sin
+  esto, cambiar de personaje entre uno de 93px de alto (Clippy) y uno de
+  285px (Scribble, sin escalar) pegaba un salto de tamaño incómodo.
+- **DPI aware** (`app/dpi.py`, se llama antes de crear cualquier ventana):
+  sin esto, en pantallas con escalado de Windows (125%/150%/200%, común en
+  laptops modernas) el sistema operativo escala la ventana él mismo
+  estirando el bitmap final — se ve borroso y el tamaño real en pantalla ya
+  no coincide con `DISPLAY_HEIGHT`. Otra causa del reclamo de "tamaño
+  incómodo", además de la falta de normalización entre personajes.
+- **Sin fleco/halo mágenta** (bug corregido en v0.3.0): la transparencia por
+  color-key de Tkinter NO hace blending real — un píxel semitransparente del
+  PNG original (cualquier borde antialiased) se mezcla con el fondo mágenta
+  del widget ANTES de aplicarse el color-key, dejando un halo rosado visible
+  alrededor del personaje. Se soluciona "endureciendo" el canal alfa
+  (`_harden_alpha` en `app/animation.py`: por debajo de `ALPHA_HARDEN_THRESHOLD`
+  el píxel pasa a 100% transparente, por encima a 100% opaco) — se aplica
+  DESPUÉS de escalar el frame al tamaño de despliegue, porque el propio
+  resize reintroduce semitransparencia en los bordes.
 
 ### 2.3 Formato de personaje (`assets/agents/<Nombre>/`)
 
@@ -120,38 +151,84 @@ secuencia lineal. Esto significa que no hay audio ni transiciones
 "inteligentes" entre poses — se documenta como limitación conocida de v0.1.0,
 no como omisión accidental.
 
-### 2.3b Cómo se generaron los 5 personajes de fidelidad reducida
+### 2.3b Cómo se generaron Scribble y Power Pup (fidelidad reducida)
 
-A diferencia de `clippy.js` (que trae `agent.js` con animaciones ya
-nombradas), The Spriters Resource entrega el arte de dos formas distintas,
-ninguna con metadata de animación — `tools/fetch_extra_assets.py` convierte
-ambas al mismo esquema de 2.3:
+Para estos 2 no se consiguió un archivo `.acs` real (ver 2.3c) — solo un
+`.zip` de The Spriters Resource con un PNG individual ya recortado por
+frame, sin agrupar por animación. `tools/fetch_extra_assets.py` los
+convierte al esquema de 2.3: cada PNG del zip es un frame a su propio
+tamaño (no hay un sheet compartido), así que se recomponen en un sprite
+sheet nuevo, centrando cada frame horizontalmente y apoyándolo abajo dentro
+de una celda de tamaño fijo (el máximo del personaje) — esto pierde la
+posición relativa exacta que tenían los frames en la animación original,
+pero es necesario para reusar un motor que asume `frame_width`/`frame_height`
+constantes. Se descartan frames cuya área supere 15x la mediana del
+personaje (algún ZIP trae, mezclado, algún archivo que no es un frame real
+— ej. Power Pup traía una captura de 791x857px, ~220x el resto, casi seguro
+un artefacto de la extracción original).
 
-- **Sprite sheet en grilla ya armado** (Mother Nature, Office Logo): se
-  detectó el tamaño de celda (124×93, el mismo que usan Clippy/F1/Genius/
-  Links/Rocky) analizando la imagen — autocorrelación de columnas para el
-  ancho, división exacta del alto por la cantidad de filas visibles
-  (930/93=10 y 1674/93=18, ambas exactas). Las celdas completamente vacías
-  (solo el color de fondo) se descartan.
-- **ZIP de frames individuales ya recortados** (The Dot, Scribble, Power
-  Pup): cada PNG del zip es un frame ya extraído a su propio tamaño (no hay
-  un sheet compartido). Se recomponen en un sprite sheet nuevo, centrando
-  cada frame horizontalmente y apoyándolo abajo dentro de una celda de
-  tamaño fijo (el máximo del personaje) — esto pierde la posición relativa
-  exacta que tenían los frames en la animación original, pero es necesario
-  para reusar un motor que asume `frame_width`/`frame_height` constantes.
-  Se descartan frames cuya área supere 15x la mediana del personaje (algún
-  ZIP trae, mezclado, algún archivo que no es un frame real — ej. Power Pup
-  traía una captura de 791x857px, ~220x el resto, casi seguro un artefacto
-  de la extracción original).
+Se genera una única animación `"Idle"` con todos los frames en el orden
+numérico en que vinieron — no hay forma de recuperar, sin la metadata
+original, cuáles frames formaban `Wave`/`Greeting`/etc. por separado. Cada
+uno se verificó visualmente (recortando frames de muestra y mirándolos)
+antes de darlo por bueno.
 
-En ambos casos se generó una única animación `"Idle"` con todos los frames
-en el orden en que vinieron (numérico para los ZIP, fila-por-fila para las
-grillas) — no hay forma de recuperar, sin la metadata original, cuáles
-frames formaban `Wave`/`Greeting`/etc. por separado. **Cada uno de los 5 se
-verificó visualmente** (recortando frames de muestra y mirándolos) antes de
-darlo por bueno; ver el historial de esta sesión si hace falta repetir el
-proceso para un personaje nuevo.
+### 2.3c Cómo se recuperaron las animaciones completas de Mother Nature,
+### Office Logo y The Dot (`tools/acs_decoder.py`)
+
+Estos 3 arrancaron (v0.2.0) con el mismo proceso de fidelidad reducida que
+2.3b, pero se investigó si se podía hacer algo mejor: encontrar y decodificar
+sus archivos `.acs` originales — el mismo formato binario propietario que
+usaba Microsoft Agent, y que el propio `clippy.js` NO sabe leer (sus assets
+ya vienen pre-extraídos por otra herramienta, ver más abajo).
+
+**Investigación**: no existe una especificación oficial de Microsoft en
+circulación, pero sí:
+
+- La "MSAgent Character Data Specification" (Lebeau Software, no oficial
+  pero es la referencia de facto), con una sección de compresión que cita
+  textualmente a ingenieros de Microsoft describiendo el algoritmo en
+  mensajes de newsgroup de 1999-2002.
+- El código fuente real de **Double Agent** (Cinnamon Software, GPLv3/LGPLv3
+  — https://github.com/rschiang/cinsoft-double-agent), un reproductor de
+  Microsoft Agent de código abierto con ~15 años de vida que sabe leer
+  estos archivos de verdad. `clippy.js` en sí **no tiene ningún parser**:
+  su propio README agradece a Cinnamon Software por Double Agent, "el
+  programa que usamos para extraer a Clippy y sus amigos" — es decir,
+  nuestros primeros 6 personajes están un nivel más abajo en la misma
+  cadena de herramientas que ahora usamos directamente.
+- **MSAgentUtils** (tkfoss, Swift, CC0), una reimplementación independiente
+  desde cero que llega exactamente a las mismas constantes de bajo nivel
+  que Double Agent.
+
+Las tres fuentes coinciden byte a byte en el contenedor del archivo y en el
+compresor LZ propietario que usa para los píxeles — esa coincidencia es la
+base de la confianza en `tools/acs_decoder.py`.
+
+**Resultado**: los 3 archivos `.acs` reales usados (`DOT.ACS`, `MNATURE.ACS`,
+`LOGO.ACS`, de https://archive.org/details/binder-97-office972000assistants,
+el mismo archivo de preservación ya citado en `NOTICE`) decodifican al 100%:
+3589 frames en total, 0 corruptos o truncados, y resultaron tener el mismo
+canvas (124×93) y prácticamente el mismo catálogo de animaciones (Wave,
+Greeting, Congratulate, GetTechy, GetWizardy, GetArtsy, etc.) que Clippy/F1/
+Genius/Links/Rocky — son la misma familia de plantilla de Microsoft Agent.
+`tools/fetch_acs_assets.py` usa el decoder para generar el mismo esquema de
+2.3 (agent.json + map.png) que el resto del roster, así que **no hizo falta
+tocar el motor de animación** (`app/animation.py`) para nada.
+
+Limitaciones honestas de `acs_decoder.py` (ninguna afecta a estos 3 archivos,
+documentadas para quien lo use con un `.acs` distinto en el futuro):
+
+- Un byte de flag por imagen cuyo significado no se determinó del todo (en
+  los 3 archivos probados siempre vale 0, el camino "normal").
+- El checksum por imagen/audio: el propio spec dice que su algoritmo nunca
+  se determinó — no hace falta para decodificar píxeles.
+- No se decodifica audio (siempre WAV sin comprimir) ni la máscara de
+  "región" (hit-testing) de cada imagen — no los necesita esta app.
+- Se verificó contra el spec v1.3; existe una v1.6 que solo se pudo leer
+  resumida por IA, no textual — vale la pena diffear antes de confiar en el
+  decoder para un `.acs` con características que v1.3 no cubra bien (ej. el
+  bloque TTS, que ninguno de los 3 archivos probados usa).
 
 ### 2.4 Menú de clic derecho (ventana y bandeja)
 
@@ -185,6 +262,12 @@ texto, pero con una diferencia de intención:
 | Links | `GetArtsy` | El gato haciendo de artista. |
 | Merlin | `DoMagic1` | Animación **exclusiva** de Merlin (no la tiene ningún otro personaje): un hechizo de mago de verdad. |
 | Rocky | `EmptyTrash` | El perro escarbando en la basura — un chiste apropiado para un personaje canino. |
+| Mother Nature | `Alert` | Un "aviso de la naturaleza", a tono con su mensaje ambiental. |
+| Office Logo | `Show` | No tiene cara ni gestos propios; su animación de aparición es lo más "de su personalidad" que existe. |
+| The Dot | `Explain` | Explica cambiando de forma, coherente con su frase característica. |
+
+Scribble y Power Pup no tienen entrada acá (solo tienen la animación
+`Idle` — ver 2.3b): "Animar" cae a su resguardo automático.
 
 Si se agrega un personaje nuevo sin entrada en `SIGNATURE_ANIMATIONS`, o sin
 traducción `animate.<Nombre>`, "Animar" no rompe: cae a una animación
@@ -204,16 +287,43 @@ Toggle en el menú que escribe/borra una entrada en
 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (no requiere permisos de
 administrador; solo afecta al usuario actual).
 
+**Falso positivo de antivirus (Kaspersky y similares)**: un `.exe` de
+PyInstaller sin firma digital que se auto-registra en el arranque de Windows
+dispara heurísticas antivirus con bastante frecuencia — no implica código
+malicioso, es un patrón muy conocido en la comunidad de PyInstaller. Se
+observó en la práctica: la app puede "creer" (según `config.json`) que el
+autoarranque está activado mientras el antivirus ya borró la entrada real
+del registro sin avisar. Mitigaciones aplicadas:
+
+- Build: `--noupx` (UPX se usa mucho en malware para evadir firmas) +
+  recurso de versión con metadata real (`tools/build_exe.py`).
+- Runtime: si `set_start_with_windows()` falla (`OSError`/`PermissionError`),
+  `main.py` revierte el checkbox y avisa con un mensaje claro
+  (`warning.autostart_blocked_*` en `locales/*.json`) en vez de crashear o
+  fallar en silencio.
+- Auto-recuperación: al iniciar, si la config dice que el autoarranque debía
+  estar activo pero la entrada del registro no está, se reintenta una vez
+  (`_resolve_start_with_windows_state` en `main.py`) — por si el antivirus la
+  había borrado por su cuenta entre una sesión y la siguiente.
+- No hay forma de eliminar el falso positivo del todo sin firma de código
+  (pagar un certificado Authenticode, fuera de alcance). Ver README.md
+  "Aviso de antivirus" para las instrucciones que le quedan al usuario
+  (excepción puntual, reporte de falso positivo, o simplemente no activar
+  la opción).
+
 ### 2.7 Importación de personajes propios
 
 - `tools/fetch_assets.py`: descarga y convierte los 6 personajes de alta
   fidelidad desde `clippyjs/clippy.js`.
-- `tools/fetch_extra_assets.py`: descarga y convierte los 5 personajes de
-  fidelidad reducida desde The Spriters Resource (ver 2.3b).
-- `tools/acs_importer.py`: **experimental**. Detecta si un archivo `.acs`
-  parece válido, pero no decodifica su sprite sheet/animaciones (formato
-  binario propietario mal documentado). Ver docstring del archivo para el
-  punto de extensión si en el futuro se implementa un parser real.
+- `tools/fetch_acs_assets.py`: descarga y convierte, con animaciones
+  completas, Mother Nature/Office Logo/The Dot desde sus `.acs` reales
+  (ver 2.3c).
+- `tools/fetch_extra_assets.py`: descarga y convierte Scribble/Power Pup
+  (fidelidad reducida, no se consiguió su `.acs` — ver 2.3b).
+- `tools/acs_importer.py`: importa un archivo `.acs` **propio** (de tu
+  propia instalación/medio de Office) y lo convierte con la misma
+  fidelidad que `fetch_acs_assets.py`, usando `tools/acs_decoder.py`.
+  Antes era experimental (solo detectaba si el archivo era válido); ya no.
 
 ## 3. Fuera de alcance (a propósito)
 
@@ -225,9 +335,12 @@ administrador; solo afecta al usuario actual).
 
 ## 4. Empaquetado y releases
 
-- `tools/build_exe.py` compila con PyInstaller (`--onefile --windowed`),
-  usando `clippy_icon_136771.ico`, y deja el `.exe` junto a `main.py`.
-- Versionado SemVer en `version.py` (único origen de verdad).
+- `tools/build_exe.py` compila con PyInstaller (`--onefile --windowed
+  --noupx`, más un recurso de versión con metadata real — ver 2.6 y
+  README.md "Aviso de antivirus"), usando `clippy_icon_136771.ico`, y deja
+  el `.exe` junto a `main.py`.
+- Versionado SemVer en `version.py` (único origen de verdad; `tools/bump_version.py`
+  también sincroniza el badge de `README.md`).
 - `.github/workflows/build.yml`: build+tests en cada push a `main` (chequeo
   de humo, sin publicar release).
 - `.github/workflows/release.yml`: en cada tag `v*.*.*`, compila el `.exe` y
@@ -249,3 +362,10 @@ administrador; solo afecta al usuario actual).
       `main.py`, sin consola, con el ícono correcto.
 - [x] `python -m pytest tests/` pasa en verde.
 - [x] Push de un tag `vX.Y.Z` dispara un GitHub Release con el `.exe` adjunto.
+- [x] Todos los personajes se ven al mismo tamaño en pantalla (`DISPLAY_HEIGHT`)
+      y sin fleco/halo mágenta en los bordes, verificado corriendo la app en
+      vivo (no alcanza con renderizar offline, ver 2.2).
+- [x] Mother Nature, Office Logo y The Dot tienen animaciones completas y
+      nombradas (no una sola "Idle"), decodificadas de su `.acs` real (2.3c).
+- [x] Si un antivirus bloquea "Iniciar con Windows", la app avisa con un
+      mensaje claro en vez de crashear, y reintenta activarlo la próxima vez.

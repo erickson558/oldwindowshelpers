@@ -1,29 +1,19 @@
-"""Descarga y convierte personajes "extra" de Office Assistant que NO tienen
-un formato listo para usar como el de clippy.js (agent.js + map.png con
-animaciones ya nombradas: Wave, Greeting, etc. — ver tools/fetch_assets.py).
+"""Descarga y convierte los personajes "extra" de Office Assistant para los
+que NO se consiguió un archivo .acs real (a diferencia de Mother Nature,
+Office Logo y The Dot — ver tools/fetch_acs_assets.py, que sí tiene sus
+animaciones completas y nombradas).
 
-Estos se obtienen de The Spriters Resource, en dos formatos distintos según
-el personaje:
-
-  a) GRID_CHARACTERS: un sprite sheet ya armado en grilla uniforme (Mother
-     Nature, Office Logo). Se detectó la grilla (124x93 por celda) analizando
-     la imagen a mano; ver specs/SPEC.md para el detalle.
-  b) FRAMES_ZIP_CHARACTERS: un .zip con un PNG individual ya recortado por
-     frame (The Dot, Scribble, Power Pup). Cada frame viene con un tamaño
-     distinto (recortado a su propio contenido), así que acá los volvemos a
-     pegar centrados-abajo sobre un lienzo de tamaño fijo (el máximo de todos
-     los frames del personaje) para poder generar un sprite sheet compatible
-     con el motor existente (app/animation.py), que asume un frame_width y
-     frame_height constantes por personaje.
-
-En AMBOS casos, la fuente no trae información de qué frames forman qué
-animación con nombre (a diferencia de clippy.js) — así que estos personajes
-quedan con una única animación "Idle" que reproduce todos sus frames en
-secuencia. Es menor fidelidad que los 6 personajes originales: no tienen
-"Wave"/"Greeting"/etc. por separado, y por lo tanto tampoco tienen (todavía)
-una entrada en app/signature_actions.py para la acción "Animar" — usan el
-resguardo automático (one-shot al azar, que en su caso es su única
-animación "Idle").
+Scribble y Power Pup solo se consiguieron como un .zip de The Spriters
+Resource con un PNG individual ya recortado por frame (sin agrupar por
+animación, y con tamaño variable por frame). Se recomponen en un sprite
+sheet nuevo, centrando cada frame horizontalmente y apoyándolo abajo dentro
+de una celda de tamaño fijo (el máximo del personaje), y quedan con una
+única animación "Idle" que reproduce todos sus frames en secuencia — menor
+fidelidad que el resto del roster: no tienen "Wave"/"Greeting"/etc. por
+separado, y por eso tampoco tienen entrada en app/signature_actions.py (usan
+el resguardo automático: one-shot al azar, que en su caso es su única
+animación "Idle"). Ver specs/SPEC.md 2.1/2.3b para más detalle y qué se
+intentó para conseguirles animaciones completas también.
 
 IMPORTANTE (ver NOTICE): igual que con tools/fetch_assets.py, el arte es
 propiedad de Microsoft. A diferencia de clippy.js, The Spriters Resource
@@ -61,28 +51,7 @@ OUTLIER_AREA_RATIO = 15
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ASSETS_DIR = PROJECT_ROOT / "assets" / "agents"
 
-# Tamaño de celda detectado analizando la imagen (autocorrelación de columnas
-# no-fondo + división exacta del alto por la cantidad de filas visibles):
-# 3590/124 ~= 29 columnas, alto de fila = 93 en ambos sheets (930/93=10 y
-# 1674/93=18 exacto). Coincide con el frame_height=93 que ya usan Clippy/F1/
-# Genius/Links/Rocky.
-GRID_FRAME_W = 124
-GRID_FRAME_H = 93
-BG_COLOR = (255, 0, 255)  # magenta puro: mismo color llave que usa app/character_window.py
-
-GRID_CHARACTERS = {
-    "MotherNature": {
-        "url": "https://www.spriters-resource.com/media/assets/101/104539.png",
-        "rows": 18,
-    },
-    "OfficeLogo": {
-        "url": "https://www.spriters-resource.com/media/assets/101/104495.png",
-        "rows": 10,
-    },
-}
-
 FRAMES_ZIP_CHARACTERS = {
-    "Dot": "https://www.spriters-resource.com/media/assets/504/522082.zip",
     "Scribble": "https://www.spriters-resource.com/media/assets/504/522069.zip",
     "PowerPup": "https://www.spriters-resource.com/media/assets/504/522077.zip",
 }
@@ -94,18 +63,6 @@ def _download(url: str) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(request, timeout=60) as response:
         return response.read()
-
-
-def _magenta_to_alpha(img: Image.Image) -> Image.Image:
-    """Convierte el color llave (fondo magenta opaco) en transparencia real,
-    en vez de depender de que Tkinter coincida por casualidad el mismo color
-    (ver TRANSPARENT_KEY en app/character_window.py) — así el sprite queda
-    correcto incluso si ese color cambia en el futuro."""
-    rgba = img.convert("RGBA")
-    pixels = rgba.getdata()
-    new_pixels = [(0, 0, 0, 0) if p[:3] == BG_COLOR else p for p in pixels]
-    rgba.putdata(new_pixels)
-    return rgba
 
 
 def _write_agent(name: str, frame_w: int, frame_h: int, sheet: Image.Image, positions: list) -> None:
@@ -127,25 +84,6 @@ def _write_agent(name: str, frame_w: int, frame_h: int, sheet: Image.Image, posi
         json.dumps(agent, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     print(f"  OK: {name} -> {len(positions)} frames (1 animacion: Idle)")
-
-
-def fetch_grid_character(name: str, url: str, rows: int) -> None:
-    print(f"Descargando {name} (sprite sheet en grilla)...")
-    raw = _download(url)
-    sheet = _magenta_to_alpha(Image.open(io.BytesIO(raw)))
-    cols = sheet.width // GRID_FRAME_W
-
-    positions = []
-    for row in range(rows):
-        for col in range(cols):
-            x, y = col * GRID_FRAME_W, row * GRID_FRAME_H
-            box = (x, y, x + GRID_FRAME_W, y + GRID_FRAME_H)
-            cell = sheet.crop(box)
-            if cell.getbbox() is None:  # celda completamente transparente: no aporta nada
-                continue
-            positions.append((x, y))
-
-    _write_agent(name, GRID_FRAME_W, GRID_FRAME_H, sheet, positions)
 
 
 def fetch_frames_zip_character(name: str, url: str) -> None:
@@ -193,8 +131,6 @@ def fetch_frames_zip_character(name: str, url: str) -> None:
 
 
 def main() -> int:
-    for name, info in GRID_CHARACTERS.items():
-        fetch_grid_character(name, info["url"], info["rows"])
     for name, url in FRAMES_ZIP_CHARACTERS.items():
         fetch_frames_zip_character(name, url)
     print(f"\nListo. Personajes 'extra' generados en {ASSETS_DIR}")

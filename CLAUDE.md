@@ -55,6 +55,22 @@ o tocar código acá:
   - `/release`: sync de specs/changelog, bump de versión, build del `.exe`,
     commit, tag y push (dispara el release automático de GitHub Actions).
   - `/comment-code`: pasa por un archivo/diff agregando comentarios claros.
+  - `/bugfix`: análisis → corrección → validación → versionado → commit →
+    push para corregir errores sin romper funcionalidad existente.
+
+## Verificación visual en vivo (importante)
+
+Bugs de renderizado de la ventana flotante (transparencia, tamaño, flecos de
+color) **no se detectan renderizando offline con PIL** — Tkinter compone la
+transparencia por color-key de forma distinta a un `alpha_composite` normal
+(ver 2.2 en `specs/SPEC.md`, el bug del "fleco mágenta"). Para verificar un
+fix visual hace falta correr la app de verdad y mirarla.
+
+Si necesitás capturar pantalla para esa verificación: **armá tu propio fondo
+de control** (una ventana Tkinter sólida, de un color que no se confunda con
+ningún personaje) y capturá solo esa región — nunca captures el escritorio
+real del usuario a ciegas, puede tener contenido personal (fotos, ventanas
+abiertas) que no hace falta ver para verificar un sprite.
 
 ## Convenciones del código
 
@@ -64,8 +80,12 @@ o tocar código acá:
 - Un solo punto de verdad para la versión: [`version.py`](version.py).
 - Los personajes viven en `assets/agents/<Nombre>/{agent.json,map.png}` con el
   esquema descrito en [`app/animation.py`](app/animation.py) — cualquier
-  importador nuevo (ver `tools/acs_importer.py`) debe producir ese mismo
-  esquema para no tener que tocar el motor de animación.
+  importador nuevo debe producir ese mismo esquema para no tener que tocar
+  el motor de animación. `tools/acs_decoder.py` (decodificador propio del
+  formato `.acs` de Microsoft Agent) + `tools/acs_decoder.build_agent_assets()`
+  ya hacen esa conversión — reusalo antes de escribir un converter nuevo
+  desde cero (lo usan tanto `tools/fetch_acs_assets.py` como
+  `tools/acs_importer.py`).
 - Commits: [Conventional Commits](https://www.conventionalcommits.org/es/)
   (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`) — determinan si el próximo
   bump de versión es minor, patch o major.
