@@ -1,0 +1,38 @@
+# Chequeo de humo en cada push/PR a main: instala dependencias, corre las
+# pruebas y compila el .exe, pero NO publica ningún release (eso lo hace
+# release.yml, solo cuando se pushea un tag vX.Y.Z). Sirve para detectar
+# roturas antes de llegar a versionar.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    # PyInstaller genera un ejecutable para el SO donde corre, así que el
+    # build de un .exe de Windows tiene que hacerse sí o sí en un runner Windows.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Correr pruebas
+        run: python -m pytest tests/ -v
+
+      - name: Compilar (chequeo de humo, no se publica)
+        run: python tools/build_exe.py
+
+      - name: Subir el .exe como artefacto de build (para inspeccionar)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OldWindowsHelpers-dev-build
+          path: OldWindowsHelpers.exe

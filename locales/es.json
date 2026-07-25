@@ -1,0 +1,25 @@
+{
+  "app.name": "Ayudantes de Office",
+  "menu.change_character": "Cambiar personaje",
+  "menu.say_tip": "Decime un consejo",
+  "menu.windows_help": "Ayuda de Windows",
+  "menu.always_on_top": "Siempre visible",
+  "menu.hide": "Ocultar",
+  "menu.show": "Mostrar",
+  "menu.language": "Idioma",
+  "menu.start_with_windows": "Iniciar con Windows",
+  "menu.about": "Acerca de",
+  "menu.buy_beer": "☕ Cómprame una cerveza",
+  "menu.exit": "Salir",
+  "tray.tooltip": "Ayudantes de Office - {character}",
+  "about.title": "Acerca de Ayudantes de Office",
+  "about.body": "Ayudantes de Office v{version}\n\nRevive a los clásicos asistentes de Microsoft Office (Clippy, Merlín, Links, Rocky, Genius, F1) como personajes flotantes en tu escritorio.\n\nCódigo con licencia Apache 2.0. Los personajes son propiedad de Microsoft y se incluyen solo con fines de preservación y nostalgia (ver NOTICE).\n\nRepositorio: https://github.com/erickson558/oldwindowshelpers",
+  "tips": [
+    "Parece que estás escribiendo un documento. ¿Necesitás ayuda?",
+    "Clic derecho sobre mí para cambiar de personaje.",
+    "Podés arrastrarme a cualquier parte del escritorio.",
+    "Recordá guardar tu trabajo seguido.",
+    "¿Sabías que puedo iniciar con Windows? Activalo desde el menú.",
+    "Si te gusta esta app, invitame una cerveza desde el menú ☕."
+  ]
+}

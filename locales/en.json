@@ -1,0 +1,25 @@
+{
+  "app.name": "Office Helpers",
+  "menu.change_character": "Change character",
+  "menu.say_tip": "Give me a tip",
+  "menu.windows_help": "Windows Help",
+  "menu.always_on_top": "Always on top",
+  "menu.hide": "Hide",
+  "menu.show": "Show",
+  "menu.language": "Language",
+  "menu.start_with_windows": "Start with Windows",
+  "menu.about": "About",
+  "menu.buy_beer": "☕ Buy me a beer",
+  "menu.exit": "Exit",
+  "tray.tooltip": "Office Helpers - {character}",
+  "about.title": "About Office Helpers",
+  "about.body": "Office Helpers v{version}\n\nBrings back the classic Microsoft Office Assistants (Clippy, Merlin, Links, Rocky, Genius, F1) as floating desktop characters.\n\nCode licensed under Apache 2.0. Characters are property of Microsoft and are included for preservation/nostalgia purposes only (see NOTICE).\n\nRepository: https://github.com/erickson558/oldwindowshelpers",
+  "tips": [
+    "Looks like you're writing a document. Need any help?",
+    "Right-click me to switch characters.",
+    "You can drag me anywhere on your desktop.",
+    "Remember to save your work often.",
+    "Did you know I can start with Windows? Turn it on from the menu.",
+    "If you like this app, buy me a beer from the menu ☕."
+  ]
+}

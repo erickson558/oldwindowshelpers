@@ -1,0 +1,38 @@
+# Se dispara al pushear un tag vX.Y.Z (ver tools/bump_version.py y el skill
+# /release). Compila el .exe y publica un GitHub Release adjuntándolo,
+# usando la misma versión del tag. No corre en cada push a main para evitar
+# crear un release duplicado por cada commit sin bump de versión.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write # necesario para que la action pueda crear el Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements-dev.txt
+
+      - name: Correr pruebas
+        run: python -m pytest tests/ -v
+
+      - name: Compilar el .exe
+        run: python tools/build_exe.py
+
+      - name: Crear el GitHub Release y adjuntar el .exe
+        uses: softprops/action-gh-release@v2
+        with:
+          files: OldWindowsHelpers.exe
+          generate_release_notes: true

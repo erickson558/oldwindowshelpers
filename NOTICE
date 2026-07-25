@@ -1,0 +1,29 @@
+OldWindowsHelpers
+Copyright 2026 Erickson (erickson558)
+
+Este producto incluye software desarrollado por Erickson (erickson558),
+licenciado bajo la Apache License, Version 2.0 (ver archivo LICENSE).
+
+------------------------------------------------------------------------------
+Aviso sobre los personajes (assets/agents/*)
+------------------------------------------------------------------------------
+
+Los sprite sheets y animaciones de los personajes incluidos en `assets/agents/`
+(Clippy, F1, Genius, Links, Merlin, Rocky) representan a los "Office Assistant"
+originales de Microsoft Office 97/2000/XP/2003. Ese arte es propiedad de
+Microsoft Corporation; NO está cubierto por la licencia Apache 2.0 de este
+repositorio, que aplica únicamente al código fuente.
+
+Se incluyen aquí con fines de preservación digital y nostalgia personal/
+educativa, sin ánimo de lucro y sin pretender ningún derecho sobre los
+personajes en sí. Fueron obtenidos, ya extraídos, del proyecto open-source
+clippy.js (https://github.com/clippyjs/clippy.js, licencia MIT para su propio
+código), que a su vez los recuperó de instalaciones legítimas de Microsoft
+Office y del kit de Microsoft Agent hace más de una década.
+
+Si Microsoft Corporation (o quien represente sus derechos) solicita la
+remoción de estos assets, se retirarán del repositorio sin objeción.
+
+"Clippy", "Clippit", "Office Assistant" y los demás nombres de personajes son
+marcas y/o creaciones de Microsoft Corporation, sin relación ni afiliación con
+este proyecto.
