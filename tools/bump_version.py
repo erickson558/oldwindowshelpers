@@ -10,6 +10,7 @@ mano con los comandos que este script te deja impresos al final). Acá solo se
 actualizan los archivos:
   1. version.py       (fuente única de verdad, la lee toda la app)
   2. CHANGELOG.md      (se agrega una sección nueva arriba, lista para editar)
+  3. README.md         (el badge de versión, que no se lee de version.py)
 """
 
 import re
@@ -20,6 +21,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 VERSION_FILE = PROJECT_ROOT / "version.py"
 CHANGELOG_FILE = PROJECT_ROOT / "CHANGELOG.md"
+README_FILE = PROJECT_ROOT / "README.md"
 
 BUMP_TYPES = ("major", "minor", "patch")
 
@@ -51,7 +53,7 @@ def bump(current: tuple[int, int, int], bump_type: str) -> str:
 
 
 def update_changelog(new_version: str) -> None:
-    entry = f"## [{new_version}] - {date.today().isoformat()}\n\n- \n\n"
+    heading = f"## [{new_version}] - {date.today().isoformat()}"
     if CHANGELOG_FILE.exists():
         existing = CHANGELOG_FILE.read_text(encoding="utf-8")
     else:
@@ -61,12 +63,31 @@ def update_changelog(new_version: str) -> None:
             "Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) "
             "y este proyecto sigue [SemVer](https://semver.org/lang/es/).\n\n"
         )
-    if "## [" in existing:
+
+    if "## [Unreleased]" in existing:
+        # Ya hay cambios anotados bajo "Unreleased" (lo típico, si se fueron
+        # agregando entradas a mano a medida que se implementaban features) —
+        # se promueve esa sección a la version nueva en vez de insertar un
+        # bloque vacio por separado.
+        existing = existing.replace("## [Unreleased]", heading, 1)
+    elif "## [" in existing:
         idx = existing.index("## [")
-        existing = existing[:idx] + entry + existing[idx:]
+        existing = existing[:idx] + heading + "\n\n- \n\n" + existing[idx:]
     else:
-        existing = existing.rstrip() + "\n\n" + entry
+        existing = existing.rstrip() + "\n\n" + heading + "\n\n- \n\n"
     CHANGELOG_FILE.write_text(existing, encoding="utf-8")
+
+
+def update_readme_badge(new_version: str) -> None:
+    if not README_FILE.exists():
+        return
+    text = README_FILE.read_text(encoding="utf-8")
+    updated = re.sub(
+        r"(img\.shields\.io/badge/version-)[^-]+(-blue)",
+        rf"\g<1>{new_version}\g<2>",
+        text,
+    )
+    README_FILE.write_text(updated, encoding="utf-8")
 
 
 def main(argv: list[str]) -> int:
@@ -79,13 +100,14 @@ def main(argv: list[str]) -> int:
     new_version = bump(current, bump_type)
     write_version(new_version)
     update_changelog(new_version)
+    update_readme_badge(new_version)
 
     current_str = ".".join(map(str, current))
     print(f"Version: {current_str} -> {new_version}")
     print(f"CHANGELOG.md: completa el detalle del cambio bajo '## [{new_version}]'")
     print()
     print("Proximos pasos sugeridos:")
-    print("  git add version.py CHANGELOG.md")
+    print("  git add version.py CHANGELOG.md README.md")
     print(f'  git commit -m "chore(release): v{new_version}"')
     print(f'  git tag -a v{new_version} -m "v{new_version}"')
     print("  git push origin main --tags")

@@ -4,6 +4,25 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.2.0] - 2026-07-25
+
+### Agregado
+
+- Acción **"Animar"** en el menú de clic derecho (ventana y bandeja): a
+  diferencia de "Decime un consejo" (animación al azar), reproduce el gesto
+  de firma de cada personaje (`app/signature_actions.py`) junto con una
+  frase única suya, en es/en.
+- 5 personajes nuevos: **Mother Nature, Office Logo, The Dot, Scribble y
+  Power Pup** (`tools/fetch_extra_assets.py`), investigados y verificados
+  visualmente a partir de The Spriters Resource — ver specs/SPEC.md 2.1/2.3b
+  para el detalle de cómo se reconstruyeron (fidelidad reducida: una sola
+  animación "Idle" por personaje, en vez del set completo con nombre que
+  traen los 6 originales).
+- Investigación documentada de personajes reales identificados pero no
+  incorporados todavía (Hoverbot, Bosgrove, Max, Earl, Kairu, Will, Saeko
+  Sensei, Mono Rey, Manma-chan) y confirmación de que **"Da Vinci" no es un
+  Office Assistant real** (ver specs/SPEC.md 2.1).
+
 ## [0.1.0] - 2026-07-25
 
 ### Agregado

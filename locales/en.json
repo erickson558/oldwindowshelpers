@@ -2,6 +2,7 @@
   "app.name": "Office Helpers",
   "menu.change_character": "Change character",
   "menu.say_tip": "Give me a tip",
+  "menu.animate": "Animate",
   "menu.windows_help": "Windows Help",
   "menu.always_on_top": "Always on top",
   "menu.hide": "Hide",
@@ -21,5 +22,16 @@
     "Remember to save your work often.",
     "Did you know I can start with Windows? Turn it on from the menu.",
     "If you like this app, buy me a beer from the menu ☕."
-  ]
+  ],
+  "animate.Clippy": "Abracadabra! A magic trick, paperclip included.",
+  "animate.F1": "Tech mode engaged. Beep. Beep.",
+  "animate.Genius": "Eureka! I just had a brilliant idea.",
+  "animate.Links": "A bit of cat-style art for you.",
+  "animate.Merlin": "May the magic be with you!",
+  "animate.Rocky": "Off to dig for treasure in the trash!",
+  "animate.MotherNature": "Mother Earth says: take a little better care of the planet.",
+  "animate.OfficeLogo": "Spinning around like the old 90s Office logo.",
+  "animate.Dot": "I can be whatever shape you want me to be!",
+  "animate.Scribble": "An origami cat, folded with care.",
+  "animate.PowerPup": "Off to save the day, cape and all!"
 }

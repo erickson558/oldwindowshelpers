@@ -30,6 +30,7 @@ def build_context_menu(app, parent: tk.Misc) -> tk.Menu:
     menu.add_cascade(label=t("menu.change_character"), menu=characters_menu)
 
     menu.add_command(label=t("menu.say_tip"), command=app.say_tip)
+    menu.add_command(label=t("menu.animate"), command=app.animate_character)
     menu.add_command(label=t("menu.windows_help"), command=app.open_windows_help)
     menu.add_separator()
 

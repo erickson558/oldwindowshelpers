@@ -2,6 +2,7 @@
   "app.name": "Ayudantes de Office",
   "menu.change_character": "Cambiar personaje",
   "menu.say_tip": "Decime un consejo",
+  "menu.animate": "Animar",
   "menu.windows_help": "Ayuda de Windows",
   "menu.always_on_top": "Siempre visible",
   "menu.hide": "Ocultar",
@@ -21,5 +22,16 @@
     "Recordá guardar tu trabajo seguido.",
     "¿Sabías que puedo iniciar con Windows? Activalo desde el menú.",
     "Si te gusta esta app, invitame una cerveza desde el menú ☕."
-  ]
+  ],
+  "animate.Clippy": "¡Abracadabra! Un truco de mago con clip incluido.",
+  "animate.F1": "Modo técnico activado. Bip. Bip.",
+  "animate.Genius": "¡Eureka! Se me ocurrió una idea genial.",
+  "animate.Links": "Un poco de arte gatuno para vos.",
+  "animate.Merlin": "¡Que la magia te acompañe!",
+  "animate.Rocky": "¡A buscar tesoros en la basura!",
+  "animate.MotherNature": "La Tierra necesita que la cuidemos un poco más.",
+  "animate.OfficeLogo": "Girando como el viejo logo de Office de los 90.",
+  "animate.Dot": "¡Puedo ser la forma que vos quieras que sea!",
+  "animate.Scribble": "Un gato de origami, doblado con cariño.",
+  "animate.PowerPup": "¡A salvar el día, con capa y todo!"
 }

@@ -16,6 +16,7 @@ from app.animation import Assistant
 from app.character_window import CharacterWindow
 from app.i18n import Translator
 from app.menu_actions import build_context_menu
+from app.signature_actions import get_signature_animation
 from app.tray import start_tray_icon
 from app.windows_help import trigger_windows_help
 from version import __version__
@@ -73,6 +74,19 @@ class OldWindowsHelpersApp:
         one_shot = self.character_window.assistant.one_shot_animations()
         self.character_window.play_once(random.choice(one_shot))
         self.character_window.show_speech_bubble(tip)
+
+    def animate_character(self) -> None:
+        """"Animar": a diferencia de "Decime un consejo" (animación al azar),
+        reproduce el gesto de firma del personaje activo (ver
+        app/signature_actions.py) junto con su frase característica."""
+        assistant = self.character_window.assistant
+        animation = get_signature_animation(assistant)
+        quip_key = f"animate.{assistant.name}"
+        quip = self.i18n.t(quip_key)
+        if quip == quip_key:  # no hay traducción para este personaje: usar un consejo genérico
+            quip = random.choice(self.i18n.list("tips"))
+        self.character_window.play_once(animation)
+        self.character_window.show_speech_bubble(quip)
 
     def open_windows_help(self) -> None:
         trigger_windows_help()

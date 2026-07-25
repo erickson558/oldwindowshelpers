@@ -64,6 +64,7 @@ def build_tray_icon(app) -> pystray.Icon:
     menu = pystray.Menu(
         pystray.MenuItem(t("menu.change_character"), characters_submenu),
         pystray.MenuItem(t("menu.say_tip"), _run_on_ui_thread(app, app.say_tip)),
+        pystray.MenuItem(t("menu.animate"), _run_on_ui_thread(app, app.animate_character)),
         pystray.MenuItem(t("menu.windows_help"), _run_on_ui_thread(app, app.open_windows_help)),
         pystray.MenuItem(
             t("menu.always_on_top"),

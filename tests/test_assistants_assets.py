@@ -7,10 +7,27 @@ import json
 from app.animation import Assistant
 from app.resources import resource_path
 
+# Los 6 originales (tools/fetch_assets.py, formato clippy.js completo) más los
+# 5 "extra" de menor fidelidad (tools/fetch_extra_assets.py, una sola
+# animación "Idle" — ver specs/SPEC.md). Si uno falta, esta prueba lo marca
+# en vez de pasar en silencio con un roster incompleto.
+EXPECTED_CHARACTERS = {
+    "Clippy", "F1", "Genius", "Links", "Merlin", "Rocky",
+    "MotherNature", "OfficeLogo", "Dot", "Scribble", "PowerPup",
+}
+
 
 def test_at_least_one_character_available():
     assert Assistant.available(), (
         "No hay personajes en assets/agents/. Corré 'python tools/fetch_assets.py' primero."
+    )
+
+
+def test_full_expected_roster_is_present():
+    missing = EXPECTED_CHARACTERS - set(Assistant.available())
+    assert not missing, (
+        f"Faltan personajes esperados: {missing}. Corré tools/fetch_assets.py "
+        "y/o tools/fetch_extra_assets.py."
     )
 
 

@@ -24,6 +24,25 @@ Office y del kit de Microsoft Agent hace más de una década.
 Si Microsoft Corporation (o quien represente sus derechos) solicita la
 remoción de estos assets, se retirarán del repositorio sin objeción.
 
-"Clippy", "Clippit", "Office Assistant" y los demás nombres de personajes son
-marcas y/o creaciones de Microsoft Corporation, sin relación ni afiliación con
-este proyecto.
+------------------------------------------------------------------------------
+Personajes adicionales (Mother Nature, Office Logo, Dot, Scribble, Power Pup)
+------------------------------------------------------------------------------
+
+Estos 5 personajes representan, igual que los anteriores, "Office Assistant"
+originales de Microsoft Office 97 y son propiedad de Microsoft Corporation.
+Se obtuvieron, ya extraídos, de The Spriters Resource
+(https://www.spriters-resource.com), y se reconstruyeron en el formato de
+este proyecto con tools/fetch_extra_assets.py (ver specs/SPEC.md 2.3b).
+
+A diferencia de clippy.js, The Spriters Resource declara sus términos de uso
+(https://www.spriters-resource.com/page/tou/) como "libre para uso no
+comercial / no publicado". Publicar estos archivos en este repositorio
+público excede, en sentido literal, ese "no publicado" — se documenta acá de
+forma explícita como una decisión consciente (misma categoría de riesgo que
+los primeros 6 personajes: arte de Microsoft, sin fines de lucro, fines de
+preservación/nostalgia), no un descuido. Si The Spriters Resource o Microsoft
+Corporation solicitan la remoción, se retirarán sin objeción.
+
+"Clippy", "Clippit", "Office Assistant", "Mother Nature" y los demás nombres
+de personajes son marcas y/o creaciones de Microsoft Corporation, sin
+relación ni afiliación con este proyecto.
