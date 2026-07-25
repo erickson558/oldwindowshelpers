@@ -7,13 +7,15 @@ import json
 from app.animation import Assistant
 from app.resources import resource_path
 
-# Los 6 originales (tools/fetch_assets.py, formato clippy.js completo) más los
-# 5 "extra" de menor fidelidad (tools/fetch_extra_assets.py, una sola
-# animación "Idle" — ver specs/SPEC.md). Si uno falta, esta prueba lo marca
-# en vez de pasar en silencio con un roster incompleto.
+# Los 6 originales (tools/fetch_assets.py, formato clippy.js completo), los 4
+# de alta fidelidad via .acs real (tools/fetch_acs_assets.py) y los 5 de
+# fidelidad reducida (tools/fetch_extra_assets.py, animaciones "Idle" +
+# "Transform" — ver specs/SPEC.md). Si uno falta, esta prueba lo marca en vez
+# de pasar en silencio con un roster incompleto.
 EXPECTED_CHARACTERS = {
     "Clippy", "F1", "Genius", "Links", "Merlin", "Rocky",
-    "MotherNature", "OfficeLogo", "Dot", "Scribble", "PowerPup",
+    "MotherNature", "OfficeLogo", "Dot", "Kairu",
+    "Scribble", "PowerPup", "Will", "SaekoSensei", "MonkeyKing",
 }
 
 

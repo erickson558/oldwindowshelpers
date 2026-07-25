@@ -4,6 +4,39 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.4.0] - 2026-07-25
+
+### Corregido
+
+- **Power Pup se veía "roto"**: su animación única mezclaba poses completas
+  del personaje con instantes de transición sin contexto (nubes, capas
+  sueltas) — se veían como manchas al azar. Se separó en dos animaciones:
+  `Idle` (solo poses grandes/reconocibles, en loop calmo) y `Transform` (la
+  secuencia completa, como gesto de un solo disparo vía "Animar"). Mismo
+  tratamiento para Scribble, y para los 3 personajes nuevos de fidelidad
+  reducida agregados en esta versión.
+- Se descartan del todo frames que no son animación real coladas en los
+  ZIPs de origen (íconos/miniaturas de fondo sólido, ej. una miniatura de
+  modelo 3D encontrada en Scribble).
+- Saeko Sensei y Monkey King venían con fondo mágenta opaco en vez de
+  transparencia real (formato de paleta sin canal alfa) — se hubieran visto
+  como un rectángulo sólido en la ventana flotante; se convierte el mágenta
+  a transparencia de verdad antes de armar su sprite sheet.
+
+### Agregado
+
+- **Kairu** (delfín, ediciones asiáticas): agregado directamente con
+  animaciones completas, decodificando su `.acs` real (`DOLPHIN.ACS`,
+  mismo archivo de preservación que ya usábamos para Mother Nature/Office
+  Logo/The Dot).
+- **Will, Saeko Sensei y Monkey King**: 3 personajes nuevos (fidelidad
+  reducida, vía The Spriters Resource — no se encontró su `.acs` real pese
+  a buscarlo en esta y la sesión anterior).
+- Investigación documentada de por qué Hoverbot, Bosgrove, Max y Earl
+  siguen sin poder incorporarse (ver specs/SPEC.md 2.1).
+- Se detectó y descartó `OFFCAT.ACS` (del mismo archivo de preservación)
+  como duplicado de Links, no un personaje nuevo.
+
 ## [0.3.0] - 2026-07-25
 
 ### Corregido

@@ -34,6 +34,10 @@
   "animate.Dot": "I can be whatever shape you want me to be!",
   "animate.Scribble": "An origami cat, folded with care.",
   "animate.PowerPup": "Off to save the day, cape and all!",
+  "animate.Kairu": "Making waves of good vibes!",
+  "animate.Will": "To be, or not to be, that is the question.",
+  "animate.SaekoSensei": "Attention, class, please.",
+  "animate.MonkeyKing": "With my staff, nothing can stop me!",
   "warning.autostart_blocked_title": "Couldn't enable start with Windows",
   "warning.autostart_blocked_body": "Windows (or your antivirus, e.g. Kaspersky) blocked the registry change. This is a known false positive: unsigned PyInstaller .exe files sometimes get flagged just for registering themselves to start with Windows. You can add an exception for OldWindowsHelpers.exe in your antivirus, or report it as a false positive. See the README for details."
 }

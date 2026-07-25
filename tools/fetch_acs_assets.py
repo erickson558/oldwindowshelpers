@@ -1,7 +1,7 @@
 """Descarga y convierte, con la MISMA fidelidad que los 6 personajes
 originales (animaciones completas y nombradas: Wave, Greeting, Congratulate,
 etc.), los personajes para los que se consiguió su archivo .acs real y
-verificado: Mother Nature, Office Logo y The Dot.
+verificado: Mother Nature, Office Logo, The Dot y Kairu.
 
 A diferencia de tools/fetch_extra_assets.py (que generaba estos mismos
 personajes con una única animación "Idle", por no tener forma de decodificar
@@ -23,13 +23,17 @@ import acs_decoder  # módulo hermano en tools/ (no es un paquete con __init__.p
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ASSETS_DIR = PROJECT_ROOT / "assets" / "agents"
 
-# Los tres .acs reales que investigamos y confirmamos (ver specs/SPEC.md 2.1):
+# Los .acs reales que investigamos y confirmamos (ver specs/SPEC.md 2.1):
 # vienen del mismo archivo de preservación "Binder 97" en archive.org que ya
-# citamos en NOTICE para el resto de los personajes.
+# citamos en NOTICE para el resto de los personajes. Ese mismo archivo
+# también trae OFFCAT.ACS y ROCKY.ACS/F1.ACS/CLIPPIT.ACS, que resultaron ser
+# el mismo Links/Rocky/F1/Clippy que ya tenemos vía clippy.js (no se agregan
+# de nuevo, seria un duplicado).
 ACS_SOURCES = {
     "MotherNature": "https://archive.org/download/binder-97-office972000assistants/MNATURE.ACS",
     "OfficeLogo": "https://archive.org/download/binder-97-office972000assistants/LOGO.ACS",
     "Dot": "https://archive.org/download/binder-97-office972000assistants/DOT.ACS",
+    "Kairu": "https://archive.org/download/binder-97-office972000assistants/DOLPHIN.ACS",
 }
 
 

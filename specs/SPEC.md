@@ -15,7 +15,7 @@ sino su presencia visual y su espíritu de "ayudante".
 
 ### 2.1 Personajes
 
-**Alta fidelidad** (9 — animaciones completas y nombradas: Wave, Greeting,
+**Alta fidelidad** (10 — animaciones completas y nombradas: Wave, Greeting,
 Congratulate, etc. Ver [`NOTICE`](../NOTICE)):
 
 | Personaje | Rol original en Office Assistant | Fuente |
@@ -29,16 +29,23 @@ Congratulate, etc. Ver [`NOTICE`](../NOTICE)):
 | Mother Nature | El globo terráqueo que se transforma en imágenes de la naturaleza | archivo `.acs` real (`tools/fetch_acs_assets.py`) |
 | Office Logo | El logo animado y giratorio de Office 9x | archivo `.acs` real |
 | The Dot | Bolita roja que cambia de forma constantemente | archivo `.acs` real |
+| Kairu | Delfín azul (ediciones asiáticas de Office 97/2000/XP) | archivo `.acs` real |
 
 Los primeros 6 se obtuvieron ya extraídos del proyecto open-source
 `clippy.js`. Mother Nature, Office Logo y The Dot arrancaron en v0.2.0 como
-"fidelidad reducida" (una sola animación `Idle`, ver 2.3b) y se
-**re-generaron en esta versión** decodificando directamente sus archivos
-`.acs` originales con un decodificador propio (`tools/acs_decoder.py`, ver
-2.3c) — ahora tienen exactamente el mismo nivel de detalle que los primeros
-6 (36-38 animaciones nombradas cada uno: Wave, Greeting, Congratulate,
-GetTechy, GetWizardy, etc.), porque en el fondo son la misma familia de
-plantilla de Microsoft Agent.
+"fidelidad reducida" (una sola animación `Idle`) y se re-generaron en v0.3.0
+decodificando directamente sus archivos `.acs` originales con un
+decodificador propio (`tools/acs_decoder.py`, ver 2.3c). Kairu se agregó
+directamente por esta vía: el mismo archivo de preservación en archive.org
+que ya usábamos (`binder-97-office972000assistants`) también trae
+`DOLPHIN.ACS` (Kairu). Ese mismo archivo trae además `OFFCAT.ACS` — se
+decodificó para revisar si era un personaje nuevo, y resultó ser el mismo
+**Links** que ya teníamos vía clippy.js (mismo set de animaciones,
+`IdleTailWagA-D`, etc.) — no se agrega de nuevo, sería un duplicado.
+
+Todos comparten prácticamente el mismo catálogo de animaciones (Wave,
+Greeting, Congratulate, GetTechy, GetWizardy, etc.) porque son la misma
+familia de plantilla de Microsoft Agent.
 
 Excluidos a propósito del set completo de `clippy.js`:
 
@@ -48,43 +55,54 @@ Excluidos a propósito del set completo de `clippy.js`:
 - **Genie, Peedy**: demos de Microsoft Agent (otra tecnología de Microsoft,
   separada de Office Assistant) — nunca aparecieron dentro de Word/Excel/etc.
 
-**Fidelidad reducida** (2 — no se consiguió un archivo `.acs` real, solo un
-`.zip` de The Spriters Resource con frames sueltos sin agrupar por
-animación. Ver `tools/fetch_extra_assets.py` y 2.3b):
+**Fidelidad reducida** (5 — no se consiguió un archivo `.acs` real para
+ninguno pese a buscarlo específicamente; solo un `.zip` de The Spriters
+Resource con frames sueltos sin agrupar por animación. Ver
+`tools/fetch_extra_assets.py` y 2.3b):
 
 | Personaje | Descripción | Origen |
 |---|---|---|
 | Scribble | Gato de estilo origami | Office 97 |
 | Power Pup | Perro con disfraz de superhéroe | Office 97 |
+| Will | Caricatura de William Shakespeare | Office 97 |
+| Saeko Sensei | Maestra de escuela | Ediciones japonesas |
+| Monkey King (Mono Rey) | Sun Wukong, de "Viaje al Oeste" | Ediciones chinas |
 
-Estos 2 tienen una única animación `"Idle"` que reproduce todos sus frames
-en secuencia (no hay forma de saber, a partir de la fuente, qué frames
-formaban `Wave`, `Greeting`, etc. por separado). Por eso tampoco tienen
-entrada en `app/signature_actions.py`: "Animar" cae al resguardo automático
-(repite su única animación `Idle`), aunque sí tienen su propia frase
-(`animate.<Nombre>` en `locales/*.json`). Si en el futuro aparece un
-archivo `.acs` real para alguno de los dos (son personajes de Office 97,
-así que es plausible que exista en algún archivo de preservación), se
-pueden re-generar con el mismo proceso de 2.3c que usamos para los otros 3.
+Estos 5 tienen dos animaciones en vez de las decenas nombradas del resto:
+`Idle` (un loop calmo con solo los frames más grandes/completos, para que el
+estado por defecto se vea reconocible) y `Transform` (la secuencia COMPLETA
+de frames originales, como gesto de un solo disparo — varios de estos
+personajes tienen secuencias de transformación real, ej. Power Pup
+literalmente se transforma en su alter-ego con capa, que tienen sentido
+como un gesto completo pero se ven como manchas sueltas si aparecen
+mezcladas en un loop infinito sin contexto). Por eso sí tienen entrada en
+`app/signature_actions.py`: "Animar" dispara `Transform`. Ver 2.3b para el
+detalle completo de cómo se separan y qué limitaciones tiene ese enfoque
+(no es perfecto: en personajes como Power Pup, incluso los frames más
+grandes por área a veces son un efecto — una nube de humo, una capa suelta
+— y no el personaje en sí; sin el `.acs` original no hay forma de saberlo
+con certeza).
 
 **Investigados pero NO incorporados** (fuentes reales encontradas y
 documentadas, para una futura versión):
 
-- **Hoverbot**: personaje real (Office 97), pero no se encontró ninguna
-  fuente con datos de animación multi-frame utilizables — el único candidato
-  en The Spriters Resource resultó mal etiquetado (apuntaba en realidad a
-  "The Dot" de Office XP) y el de archive.org es solo una captura estática
-  de la ventana de selección, no un sprite sheet.
+- **Hoverbot**: personaje real (Office 97). Se buscó en dos sesiones
+  distintas sin encontrar ninguna fuente con datos de animación multi-frame
+  utilizables — el único candidato en The Spriters Resource resultó mal
+  etiquetado (apuntaba en realidad a "The Dot" de Office XP), el de
+  archive.org (`MSOfficeMacAssistants.zip`) es solo una captura estática de
+  la ventana de selección, y el archivo `binder-97-office972000assistants`
+  (que sí trae `.acs` reales de Dot/Mother Nature/Office Logo/Kairu/Links)
+  no incluye uno para Hoverbot.
 - **Bosgrove, Max** (exclusivos de Office para Mac): solo existen capturas
-  estáticas de la ventana "Gallery" (una sola pose), no hay sprite sheet ni
-  frames de animación reales disponibles en ningún lado encontrado.
-- **Earl** (gato azul, exclusivo de Mac), **Kairu** (delfín, ediciones
-  asiáticas de Windows), **Will** (caricatura de Shakespeare, Office 97),
-  **Saeko Sensei**, **Mono Rey (Sun Wukong)**, **Manma-chan** (ediciones
-  regionales japonesa/china): personajes reales con sprite sheet o zip de
-  frames disponible en The Spriters Resource, pero no se incorporaron en
-  esta vuelta por alcance — quedan para una futura versión siguiendo el
-  mismo proceso de 2.3b.
+  estáticas de la ventana "Gallery" (una sola pose); su formato nativo de
+  Mac (resource fork clásico, distinto de `.acs`) tampoco está soportado por
+  `tools/acs_decoder.py` — decodificarlo sería un proyecto aparte.
+- **Earl** (gato azul, exclusivo de Mac), **Manma-chan** (promoción japonesa
+  puntual, no un asistente estándar): personajes reales con sprite sheet o
+  zip de frames disponible en The Spriters Resource, pero no se
+  incorporaron por alcance — quedan para una futura versión siguiendo el
+  mismo proceso de 2.3b si hace falta.
 - **"Da Vinci"**: **no existe** ningún Office Assistant ni personaje de
   Microsoft Agent con ese nombre o parecido — se investigó a fondo
   (Wikipedia, wikis de Microsoft Agent, documentación de Encarta/Bookshelf/
@@ -151,36 +169,66 @@ secuencia lineal. Esto significa que no hay audio ni transiciones
 "inteligentes" entre poses — se documenta como limitación conocida de v0.1.0,
 no como omisión accidental.
 
-### 2.3b Cómo se generaron Scribble y Power Pup (fidelidad reducida)
+### 2.3b Cómo se generaron los 5 de fidelidad reducida
 
-Para estos 2 no se consiguió un archivo `.acs` real (ver 2.3c) — solo un
-`.zip` de The Spriters Resource con un PNG individual ya recortado por
-frame, sin agrupar por animación. `tools/fetch_extra_assets.py` los
-convierte al esquema de 2.3: cada PNG del zip es un frame a su propio
+Para estos 5 no se consiguió un archivo `.acs` real (ver 2.3c) pese a
+buscarlo — solo un `.zip` de The Spriters Resource con un PNG individual ya
+recortado por frame, sin agrupar por animación. `tools/fetch_extra_assets.py`
+los convierte al esquema de 2.3: cada PNG del zip es un frame a su propio
 tamaño (no hay un sheet compartido), así que se recomponen en un sprite
 sheet nuevo, centrando cada frame horizontalmente y apoyándolo abajo dentro
 de una celda de tamaño fijo (el máximo del personaje) — esto pierde la
 posición relativa exacta que tenían los frames en la animación original,
 pero es necesario para reusar un motor que asume `frame_width`/`frame_height`
-constantes. Se descartan frames cuya área supere 15x la mediana del
-personaje (algún ZIP trae, mezclado, algún archivo que no es un frame real
-— ej. Power Pup traía una captura de 791x857px, ~220x el resto, casi seguro
-un artefacto de la extracción original).
+constantes.
 
-Se genera una única animación `"Idle"` con todos los frames en el orden
-numérico en que vinieron — no hay forma de recuperar, sin la metadata
-original, cuáles frames formaban `Wave`/`Greeting`/etc. por separado. Cada
-uno se verificó visualmente (recortando frames de muestra y mirándolos)
-antes de darlo por bueno.
+Antes de armar el sprite sheet se limpian tres tipos de frames que no son
+una pose real del personaje (los tres, encontrados verificando visualmente
+cada personaje frame por frame, no a ciegas):
+
+- **Sin transparencia real** (`MAX_OPAQUE_FILL_RATIO`): algún ZIP trae
+  colado un ícono o miniatura promocional de fondo sólido — en Scribble, un
+  ícono de "cara de gato" y una miniatura de un modelo 3D en wireframe,
+  ninguno de los dos un frame de animación real. Un frame de personaje
+  genuino es una silueta recortada (tiene esquinas transparentes); una
+  miniatura rectangular casi no tiene transparencia. Excepción: si el 100%
+  de los frames de un personaje da "sin transparencia" (le pasó a Saeko
+  Sensei y Monkey King, exportados en modo paleta con fondo mágenta opaco
+  en vez de canal alfa), el filtro se omite — no es que todo el personaje
+  sea basura, es que esa fuente en particular no usa transparencia real, y
+  se convierte el mágenta a transparencia de verdad primero
+  (`_magenta_to_real_alpha`, mismo color llave que usa
+  `app/character_window.py`).
+- **Área atípica** (`OUTLIER_AREA_RATIO`): algún frame mide muchísimo más
+  que el resto (Power Pup traía uno de 791x857px, ~220x la mediana) — casi
+  seguro un artefacto de la extracción original, no una pose.
+- **Frames minúsculos para el loop `Idle`** (`IDLE_TOP_N`): de los frames
+  que quedan, solo los de mayor área de contenido entran al loop `Idle` —
+  el resto queda disponible en `Transform` (ver 2.1) pero no en el loop
+  infinito. Esto es una aproximación imperfecta a propósito documentada: en
+  personajes como Power Pup, incluso los frames grandes a veces son un
+  efecto (una nube, una capa) del mismo tamaño que una pose real, así que
+  ni este filtro garantiza el 100% de los frames de `Idle` reconocibles.
+
+Cada personaje se verificó visualmente (recortando frames de muestra sobre
+un fondo verde brillante, para detectar tanto problemas de transparencia
+como de contenido) antes de darlo por bueno.
 
 ### 2.3c Cómo se recuperaron las animaciones completas de Mother Nature,
-### Office Logo y The Dot (`tools/acs_decoder.py`)
+### Office Logo, The Dot y Kairu (`tools/acs_decoder.py`)
 
-Estos 3 arrancaron (v0.2.0) con el mismo proceso de fidelidad reducida que
-2.3b, pero se investigó si se podía hacer algo mejor: encontrar y decodificar
-sus archivos `.acs` originales — el mismo formato binario propietario que
-usaba Microsoft Agent, y que el propio `clippy.js` NO sabe leer (sus assets
-ya vienen pre-extraídos por otra herramienta, ver más abajo).
+Mother Nature, Office Logo y The Dot arrancaron (v0.2.0) con el mismo
+proceso de fidelidad reducida que 2.3b, pero se investigó si se podía hacer
+algo mejor: encontrar y decodificar sus archivos `.acs` originales — el
+mismo formato binario propietario que usaba Microsoft Agent, y que el
+propio `clippy.js` NO sabe leer (sus assets ya vienen pre-extraídos por
+otra herramienta, ver más abajo). Kairu se agregó directamente por esta vía
+en v0.4.0, al notar que el mismo archivo de preservación en archive.org
+(`binder-97-office972000assistants`) también trae su `.acs` (`DOLPHIN.ACS`)
+— nunca tuvo una versión de fidelidad reducida. Ese mismo archivo trae
+además `OFFCAT.ACS`, que se decodificó para revisar si era un personaje
+nuevo: resultó ser **Links** (mismo set de animaciones exacto que el que ya
+tenemos vía clippy.js) — se descartó por duplicado.
 
 **Investigación**: no existe una especificación oficial de Microsoft en
 circulación, pero sí:
@@ -205,10 +253,11 @@ Las tres fuentes coinciden byte a byte en el contenedor del archivo y en el
 compresor LZ propietario que usa para los píxeles — esa coincidencia es la
 base de la confianza en `tools/acs_decoder.py`.
 
-**Resultado**: los 3 archivos `.acs` reales usados (`DOT.ACS`, `MNATURE.ACS`,
-`LOGO.ACS`, de https://archive.org/details/binder-97-office972000assistants,
-el mismo archivo de preservación ya citado en `NOTICE`) decodifican al 100%:
-3589 frames en total, 0 corruptos o truncados, y resultaron tener el mismo
+**Resultado**: los 4 archivos `.acs` reales usados (`DOT.ACS`, `MNATURE.ACS`,
+`LOGO.ACS`, `DOLPHIN.ACS`, de
+https://archive.org/details/binder-97-office972000assistants, el mismo
+archivo de preservación ya citado en `NOTICE`) decodifican al 100%: ~6235
+frames en total, 0 corruptos o truncados, y resultaron tener el mismo
 canvas (124×93) y prácticamente el mismo catálogo de animaciones (Wave,
 Greeting, Congratulate, GetTechy, GetWizardy, GetArtsy, etc.) que Clippy/F1/
 Genius/Links/Rocky — son la misma familia de plantilla de Microsoft Agent.
@@ -265,9 +314,8 @@ texto, pero con una diferencia de intención:
 | Mother Nature | `Alert` | Un "aviso de la naturaleza", a tono con su mensaje ambiental. |
 | Office Logo | `Show` | No tiene cara ni gestos propios; su animación de aparición es lo más "de su personalidad" que existe. |
 | The Dot | `Explain` | Explica cambiando de forma, coherente con su frase característica. |
-
-Scribble y Power Pup no tienen entrada acá (solo tienen la animación
-`Idle` — ver 2.3b): "Animar" cae a su resguardo automático.
+| Kairu | `Wave` | Un delfín + una ola, el chiste se arma solo. |
+| Power Pup, Scribble, Will, Saeko Sensei, Monkey King | `Transform` | Su secuencia completa de transformación (ver 2.1/2.3b) — es justo lo que "Animar" debería mostrar. |
 
 Si se agrega un personaje nuevo sin entrada en `SIGNATURE_ANIMATIONS`, o sin
 traducción `animate.<Nombre>`, "Animar" no rompe: cae a una animación
@@ -316,10 +364,11 @@ del registro sin avisar. Mitigaciones aplicadas:
 - `tools/fetch_assets.py`: descarga y convierte los 6 personajes de alta
   fidelidad desde `clippyjs/clippy.js`.
 - `tools/fetch_acs_assets.py`: descarga y convierte, con animaciones
-  completas, Mother Nature/Office Logo/The Dot desde sus `.acs` reales
-  (ver 2.3c).
-- `tools/fetch_extra_assets.py`: descarga y convierte Scribble/Power Pup
-  (fidelidad reducida, no se consiguió su `.acs` — ver 2.3b).
+  completas, Mother Nature/Office Logo/The Dot/Kairu desde sus `.acs`
+  reales (ver 2.3c).
+- `tools/fetch_extra_assets.py`: descarga y convierte Scribble/Power Pup/
+  Will/Saeko Sensei/Monkey King (fidelidad reducida, no se consiguió su
+  `.acs` para ninguno — ver 2.3b).
 - `tools/acs_importer.py`: importa un archivo `.acs` **propio** (de tu
   propia instalación/medio de Office) y lo convierte con la misma
   fidelidad que `fetch_acs_assets.py`, usando `tools/acs_decoder.py`.
@@ -365,7 +414,13 @@ del registro sin avisar. Mitigaciones aplicadas:
 - [x] Todos los personajes se ven al mismo tamaño en pantalla (`DISPLAY_HEIGHT`)
       y sin fleco/halo mágenta en los bordes, verificado corriendo la app en
       vivo (no alcanza con renderizar offline, ver 2.2).
-- [x] Mother Nature, Office Logo y The Dot tienen animaciones completas y
-      nombradas (no una sola "Idle"), decodificadas de su `.acs` real (2.3c).
+- [x] Mother Nature, Office Logo, The Dot y Kairu tienen animaciones
+      completas y nombradas (no una sola "Idle"), decodificadas de su `.acs`
+      real (2.3c).
+- [x] Power Pup, Scribble, Will, Saeko Sensei y Monkey King separan `Idle`
+      (poses reconocibles, loop calmo) de `Transform` (secuencia completa,
+      un solo disparo vía "Animar"), en vez de mezclar todo en un loop —
+      verificado visualmente que ya no predominan las manchas sin forma.
+- [x] El roster completo (15 personajes) pasa `test_full_expected_roster_is_present`.
 - [x] Si un antivirus bloquea "Iniciar con Windows", la app avisa con un
       mensaje claro en vez de crashear, y reintenta activarlo la próxima vez.

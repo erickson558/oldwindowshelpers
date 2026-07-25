@@ -21,6 +21,13 @@ personaje, priorizando lo que resulta más "de su personalidad":
                             más "de su personalidad" que existe.
 - Dot:          Explain  -> explica cambiando de forma, coherente con su frase
                             ("puedo ser la forma que quieras que sea").
+- Kairu:        Wave     -> un delfín + una ola, el chiste se arma solo.
+
+Para Power Pup, Scribble, Will, Saeko Sensei y Monkey King (los 5 de
+fidelidad reducida — ver tools/fetch_extra_assets.py y specs/SPEC.md 2.3b)
+no hay animaciones nombradas individuales, pero SÍ tienen una animación
+"Transform" (la secuencia completa de frames, de un solo disparo) — que es
+justamente lo que "Animar" debería mostrar, así que apunta ahí para los 5.
 
 Si se agrega un personaje nuevo sin entrada acá, `get_signature_animation`
 cae de vuelta a una animación "one-shot" al azar (ver Assistant.one_shot_animations
@@ -39,6 +46,12 @@ SIGNATURE_ANIMATIONS: dict[str, str] = {
     "MotherNature": "Alert",
     "OfficeLogo": "Show",
     "Dot": "Explain",
+    "Kairu": "Wave",
+    "PowerPup": "Transform",
+    "Scribble": "Transform",
+    "Will": "Transform",
+    "SaekoSensei": "Transform",
+    "MonkeyKing": "Transform",
 }
 
 

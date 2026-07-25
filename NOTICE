@@ -25,14 +25,15 @@ Si Microsoft Corporation (o quien represente sus derechos) solicita la
 remoción de estos assets, se retirarán del repositorio sin objeción.
 
 ------------------------------------------------------------------------------
-Mother Nature, Office Logo y The Dot (decodificados de su .acs original)
+Mother Nature, Office Logo, The Dot y Kairu (decodificados de su .acs original)
 ------------------------------------------------------------------------------
 
-Estos 3 personajes representan, igual que los anteriores, "Office Assistant"
-originales de Microsoft Office 97 y son propiedad de Microsoft Corporation.
-A diferencia de los primeros 6 (obtenidos ya extraídos de clippy.js), estos
-se generaron decodificando directamente sus archivos `.acs` originales
-(DOT.ACS, MNATURE.ACS, LOGO.ACS) con un decodificador propio
+Estos 4 personajes representan, igual que los anteriores, asistentes
+originales de Microsoft Office 97/2000/XP (Kairu, de las ediciones
+asiáticas) y son propiedad de Microsoft Corporation. A diferencia de los
+primeros 6 (obtenidos ya extraídos de clippy.js), estos se generaron
+decodificando directamente sus archivos `.acs` originales (DOT.ACS,
+MNATURE.ACS, LOGO.ACS, DOLPHIN.ACS) con un decodificador propio
 (tools/acs_decoder.py, código de este repo, Apache 2.0 — ver specs/SPEC.md
 2.3c). Los archivos `.acs` en sí se obtuvieron de un archivo de preservación
 en archive.org: "Binder 97 Plus Assistants"
@@ -47,15 +48,17 @@ solo como referencia de lectura para entender el formato, ninguna línea de
 ese código se copió a este repositorio) y MSAgentUtils (tkfoss, CC0).
 
 ------------------------------------------------------------------------------
-Scribble y Power Pup (via The Spriters Resource)
+Power Pup, Scribble, Will, Saeko Sensei y Monkey King (via The Spriters Resource)
 ------------------------------------------------------------------------------
 
-Estos 2 personajes representan, igual que los anteriores, "Office Assistant"
-originales de Microsoft Office 97 y son propiedad de Microsoft Corporation.
-Se obtuvieron, ya extraídos, de The Spriters Resource
-(https://www.spriters-resource.com), y se reconstruyeron en el formato de
-este proyecto con tools/fetch_extra_assets.py (ver specs/SPEC.md 2.3b) —
-no se consiguió su archivo `.acs` original.
+Estos 5 personajes representan, igual que los anteriores, asistentes
+originales de Microsoft Office (Power Pup, Scribble y Will de Office 97;
+Saeko Sensei y Monkey King de ediciones japonesa/china respectivamente) y
+son propiedad de Microsoft Corporation. Se obtuvieron, ya extraídos, de The
+Spriters Resource (https://www.spriters-resource.com), y se reconstruyeron
+en el formato de este proyecto con tools/fetch_extra_assets.py (ver
+specs/SPEC.md 2.3b) — no se consiguió el archivo `.acs` original de
+ninguno de los 5 pese a buscarlo.
 
 A diferencia de clippy.js, The Spriters Resource declara sus términos de uso
 (https://www.spriters-resource.com/page/tou/) como "libre para uso no

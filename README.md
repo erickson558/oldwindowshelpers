@@ -1,6 +1,6 @@
 # OldWindowsHelpers 📎
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue)](CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey)](#requisitos)
 
@@ -30,11 +30,12 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 
 - **Ventana flotante transparente**: el personaje aparece sin bordes ni fondo
   sobre el escritorio, arrastrable con el mouse.
-- **11 personajes clásicos** listos para usar — los verdaderos "Office
-  Assistant" de Microsoft Office. 9 con animaciones completas y nombradas
-  (Clippy, F1, Genius, Links, Merlín, Rocky, Mother Nature, Office Logo y
-  The Dot) y 2 con una sola animación por no haber podido recuperar su
-  archivo original (Scribble, Power Pup) — ver
+- **15 personajes clásicos** listos para usar — los verdaderos "Office
+  Assistant" de Microsoft Office. 10 con animaciones completas y nombradas
+  (Clippy, F1, Genius, Links, Merlín, Rocky, Mother Nature, Office Logo,
+  The Dot y Kairu) y 5 con "Idle" (poses grandes) + "Transform" (secuencia
+  completa de un solo disparo) por no haber podido recuperar su archivo
+  original (Power Pup, Scribble, Will, Saeko Sensei, Monkey King) — ver
   [`specs/SPEC.md`](specs/SPEC.md) 2.1.
 - **Mismo tamaño y sin fleco de color** en todos los personajes, sin
   importar el tamaño real de su sprite original, y con soporte para
@@ -79,8 +80,8 @@ volver a descargarlos o agregar los que falten:
 
 ```powershell
 python tools/fetch_assets.py         # 6 de alta fidelidad, via clippy.js
-python tools/fetch_acs_assets.py     # 3 de alta fidelidad, via .acs real decodificado
-python tools/fetch_extra_assets.py   # 2 de fidelidad reducida, via Spriters Resource
+python tools/fetch_acs_assets.py     # 4 de alta fidelidad, via .acs real decodificado
+python tools/fetch_extra_assets.py   # 5 de fidelidad reducida, via Spriters Resource
 ```
 
 ## Uso
@@ -205,10 +206,11 @@ Ver [`CLAUDE.md`](CLAUDE.md) para las convenciones del proyecto.
 
 ## Aviso sobre los personajes
 
-Los 11 personajes (Clippy, Merlín, Links, Rocky, Genius, F1, Mother Nature,
-Office Logo, The Dot, Scribble y Power Pup) son propiedad de Microsoft
-Corporation; se incluyen únicamente con fines de preservación y nostalgia,
-no comerciales. El código de este repositorio (todo lo que **no** esté en
+Los 15 personajes (Clippy, Merlín, Links, Rocky, Genius, F1, Mother Nature,
+Office Logo, The Dot, Kairu, Power Pup, Scribble, Will, Saeko Sensei y
+Monkey King) son propiedad de Microsoft Corporation; se incluyen
+únicamente con fines de preservación y nostalgia, no comerciales. El
+código de este repositorio (todo lo que **no** esté en
 `assets/agents/`) es de autoría propia y se licencia en Apache 2.0 —
 incluyendo `tools/acs_decoder.py`, un decodificador propio del formato
 binario `.acs`, escrito investigando el formato (no copiando código de
