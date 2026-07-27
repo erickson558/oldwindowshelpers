@@ -2778,7 +2778,7 @@
         ]
       }
     ],
-    "Idle": [
+    "Motion20": [
       {
         "duration": 120,
         "images": [
@@ -8180,7 +8180,7 @@
         ]
       }
     ],
-    "Motion57": [
+    "Idle": [
       {
         "duration": 120,
         "images": [

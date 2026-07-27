@@ -174,11 +174,12 @@ buscarlo — solo un `.zip` de The Spriters Resource con un PNG individual ya
 recortado por frame, sin agrupar por animación. `tools/fetch_extra_assets.py`
 los convierte al esquema de 2.3: cada PNG del zip es un frame a su propio
 tamaño (no hay un sheet compartido), así que se recomponen en un sprite
-sheet nuevo, centrando cada frame horizontalmente y apoyándolo abajo dentro
-de una celda de tamaño fijo (el máximo del personaje) — esto pierde la
-posición relativa exacta que tenían los frames en la animación original,
-pero es necesario para reusar un motor que asume `frame_width`/`frame_height`
-constantes.
+sheet nuevo, centrando cada frame en AMBOS ejes dentro de una celda de
+tamaño fijo (el máximo del personaje) — esto pierde la posición relativa
+exacta que tenían los frames en la animación original, pero es necesario
+para reusar un motor que asume `frame_width`/`frame_height` constantes.
+(v0.5.1 cambió esto de apoyar-abajo a centrado en ambos ejes — ver el fix
+más abajo.)
 
 Antes de armar el sprite sheet se limpian tres tipos de frames que no son
 una pose real del personaje (los tres, encontrados verificando visualmente
@@ -237,6 +238,77 @@ Cada personaje se verificó visualmente (recortando frames de muestra sobre
 un fondo verde brillante, para detectar tanto problemas de transparencia
 como de contenido, y revisando bloques `Motion` completos para confirmar
 que ya no duran minutos) antes de darlo por bueno.
+
+**v0.5.1** (bugfix): reportado que Will/Saeko Sensei/Power Pup "se ven
+animados cuando cargan, no estables" incluso en su loop `Idle` calmo.
+Verificando en vivo (ventana Tkinter real contra un fondo sólido de
+control, no solo compositing offline con PIL — la lección de 2.2 sobre el
+fleco mágenta aplica igual acá) se confirmaron tres causas raíz, las tres
+en `tools/fetch_extra_assets.py`:
+
+1. **El chunk `Idle` se elegía por mayor área PROMEDIO nomás**, sin mirar
+   cuánto variaba el tamaño de un frame al siguiente DENTRO de ese mismo
+   chunk. Medido antes del fix: Power Pup tenía un chunk `Idle` cuyos
+   frames iban de 744px² a 28026px² (37x de diferencia), Will de 3895 a
+   35840px² (9x). En loop continuo eso se ve exactamente como estar a
+   mitad de una transformación, no como un personaje descansando.
+2. **Cada frame se apoyaba abajo** ("bottom-anchor") dentro de su celda de
+   tamaño fijo — un frame chico y uno grande consecutivos también saltaban
+   de posición VERTICAL, no solo de tamaño.
+3. **La más sutil, encontrada investigando el bug**: el "área" de cada
+   frame se medía como `ancho * alto` del PNG individual tal cual venía en
+   el `.zip` de origen, asumiendo que la fuente ya recorta cada frame a su
+   contenido real. Cierto para Will/Power Pup/Scribble (tienen decenas de
+   tamaños nominales distintos) — pero **falso para Saeko Sensei y Monkey
+   King**: sus ~1300 frames comparten EXACTAMENTE el mismo lienzo nominal
+   (11270px² los 1323 frames de Saeko Sensei, verificado), aunque el
+   personaje dibujado adentro varíe muchísimo de tamaño real (812px² a
+   9800px² de contenido visible). Con esa fuente, `ancho * alto` es una
+   constante sin ningún poder de distinguir un frame grande de uno chico —
+   tanto el filtro de valores atípicos como la elección de `Idle` quedaban
+   ciegos para estos dos personajes.
+
+Arreglo, todo en `tools/fetch_extra_assets.py`:
+
+- `_tight_area()`: mide el bounding box real del canal alfa en vez del
+  lienzo nominal del PNG. Funciona igual de bien en fuentes ya recortadas
+  (da prácticamente el mismo número) y es lo único que funciona en fuentes
+  sin recortar. Reemplaza `f.width * f.height` tanto en el filtro de
+  atípicos como en el cálculo de área por chunk.
+- El paste centra cada frame en AMBOS ejes (`(frame_h - frame.height) //
+  2`) en vez de apoyarlo abajo.
+- `_select_idle_chunk_index()`: ya no elige el chunk de mayor área
+  promedio. Primero descarta los chunks cuya área promedio quede por
+  debajo del 65 % (`IDLE_MIN_AREA_RATIO`) del chunk más grande del
+  personaje — así se asegura que `Idle` sea una pose reconocible, no un
+  recorte insignificante. **Ese piso se probó primero relativo a la
+  MEDIANA de área entre chunks** y se descartó tras verificar en vivo:
+  dejaba pasar chunks perfectamente estables pero que en pantalla eran
+  solo un fragmento suelto sin relación con el personaje (ej. Power Pup
+  mostrando nada más que un boomerang blanco). Relativo al máximo del
+  propio personaje da un piso más exigente y consistente. Entre los
+  chunks que sí llegan a ese piso, gana el de MENOR coeficiente de
+  variación (desviación estándar / media) de área entre sus 16 frames, no
+  el de mayor área.
+
+Resultado verificado en vivo (bounding box real del alfa, sobre los
+personajes ya regenerados): Saeko Sensei pasó de un `Idle` con
+coeficiente de variación 0.23 (visible como saltos de tamaño) a uno con
+0.01 (una pose completa y estable, mujer con papeles junto a una
+fotocopiadora); Monkey King de 0.05 a un chunk igual de estable pero más
+grande/representativo (76 % del área máxima del personaje en vez del
+55 %). **Límite conocido, aceptado conscientemente**: para Will y Power
+Pup, NINGÚN chunk con área razonable (≥65 % del máximo del personaje)
+baja de un coeficiente de variación de ~0.6-0.7 — es decir, esa variación
+de tamaño interna es inherente al material de origen de estos dos
+personajes en particular (no hay ningún tramo de 16 frames consecutivos
+que sea a la vez grande y parejo), no un bug del algoritmo. El salto de
+POSICIÓN vertical (causa #2) sí quedó completamente eliminado para los 5.
+Test de regresión: los tests existentes de 2.3b (`test_every_character_
+metadata_matches_its_sprite_sheet`, `test_no_one_shot_animation_takes_
+absurdly_long_to_play`) siguen pasando sin cambios: la duración/estructura
+de las animaciones no cambió, solo qué chunk se marca `Idle` y cómo se
+posiciona cada frame dentro de su celda.
 
 ### 2.3c Cómo se recuperaron las animaciones completas de Mother Nature,
 ### Office Logo, The Dot y Kairu (`tools/acs_decoder.py`)

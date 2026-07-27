@@ -7,8 +7,8 @@ Scribble, Power Pup, Will, Saeko Sensei y Monkey King solo se consiguieron
 como un .zip de The Spriters Resource con un PNG individual ya recortado por
 frame — sin agrupar por animación, y con tamaño variable por frame (cada uno
 recortado a su propio contenido). Se recomponen en un sprite sheet nuevo,
-centrando cada frame horizontalmente y apoyándolo abajo dentro de una celda
-de tamaño fijo (el máximo del personaje, sin contar valores atípicos).
+centrando cada frame (horizontal Y vertical) dentro de una celda de tamaño
+fijo (el máximo del personaje, sin contar valores atípicos).
 
 Cómo se arman las animaciones (v0.5.0, reemplaza al esquema Idle/Transform
 de v0.4.0 — ver por qué en specs/SPEC.md 2.3b):
@@ -33,11 +33,45 @@ animación nombrada "MotionNN" de pocos segundos de largo. Frames
 consecutivos en el material original tienen mucha más chance de pertenecer
 al mismo gesto real que frames elegidos por área de cualquier punto de la
 secuencia, así que cada bloque se ve como una animación corta con sentido
-en vez de un collage. El bloque con mayor área promedio (más chance de ser
-"personaje de cuerpo casi completo") se renombra "Idle" y es el que hace
-loop por defecto; el resto quedan como one-shots — "Decime un consejo" y
-"Animar" eligen uno al azar entre ellos, así se recupera la variedad de
-"animaciones random" que tienen el resto de los personajes.
+en vez de un collage. El bloque elegido como "Idle" (loop por defecto) es
+el que gana un puntaje que combina área promedio ALTA (pose reconocible,
+no un recorte chico de transición) con variación de tamaño interna BAJA
+entre sus propios frames (ver v0.5.1 más abajo); el resto quedan como
+one-shots — "Decime un consejo" y "Animar" eligen uno al azar entre ellos,
+así se recupera la variedad de "animaciones random" que tienen el resto de
+los personajes.
+
+v0.5.1 (bugfix, ver specs/SPEC.md 2.3b): reportado que Will/Saeko
+Sensei/Power Pup "se ven animados cuando cargan, no estables" incluso en su
+loop "Idle" calmo. Tres causas raíz encontradas, las tres en este archivo:
+
+1. El chunk "Idle" se elegía por MAYOR ÁREA PROMEDIO nomás, sin mirar cuánto
+   variaba el tamaño de un frame al siguiente DENTRO de ese mismo chunk —
+   Power Pup tenía un chunk "Idle" cuyos frames iban de 744px² a 28026px²
+   (37x de diferencia), Will de 3895 a 35840 (9x). En loop continuo, eso se
+   ve exactamente como estar a mitad de una transformación, no como un
+   personaje descansando. Se corrige en `_select_idle_chunk_index`, que
+   ahora penaliza la variación interna (coeficiente de variación) además de
+   premiar el área promedio.
+2. Cada frame se apoyaba abajo ("bottom-anchor") dentro de su celda de
+   tamaño fijo, así que un frame chico y uno grande consecutivos también
+   saltaban de posición vertical, no solo de tamaño. Se corrige centrando el
+   paste en AMBOS ejes en vez de apoyarlo abajo.
+3. La más sutil: el "área" de cada frame se medía como `ancho * alto` del
+   PNG individual tal cual venía en el .zip de origen. Eso asume que la
+   fuente ya recorta cada frame a su contenido real — cierto para Will,
+   Power Pup y Scribble, pero investigando el bug se encontró que **Saeko
+   Sensei y Monkey King NO vienen recortados así**: sus ~1300 frames
+   comparten EXACTAMENTE el mismo lienzo nominal (ej. 11270px² para los
+   1323 frames de Saeko Sensei), aunque el personaje dibujado adentro varíe
+   muchísimo de tamaño real (812px² a 9800px² de contenido visible medido
+   por bounding box del alfa). Con esa fuente, `ancho * alto` es una
+   constante sin ningún poder de distinguir un frame grande de uno chico —
+   tanto el filtro de valores atípicos como la selección de "Idle" quedaban
+   ciegos para estos dos personajes. Se corrige con `_tight_area()`, que
+   mide el bounding box real del canal alfa en vez del lienzo nominal —
+   funciona igual de bien para fuentes ya recortadas (da prácticamente el
+   mismo número) y es lo único que funciona para fuentes sin recortar.
 
 Ver specs/SPEC.md 2.1/2.3b para más detalle, y qué se intentó para
 conseguirles animaciones completas y nombradas también (ninguno de estos 5
@@ -122,6 +156,61 @@ def _download(url: str) -> bytes:
         return response.read()
 
 
+def _tight_area(img: Image.Image) -> int:
+    """Área del contenido visible real (bounding box del canal alfa), NO del
+    lienzo nominal del PNG (`img.width * img.height`). Se descubrió durante
+    el fix de v0.5.1 que algunas fuentes (Saeko Sensei, Monkey King) traen
+    CADA frame ya pre-pegado en un lienzo de tamaño fijo sin recortar --
+    ancho*alto da el MISMO número para los 1300+ frames del personaje, así
+    que no sirve para distinguir una pose grande de una chica. El bounding
+    box del alfa sí refleja cuánto ocupa el personaje en pantalla en ese
+    frame puntual, sea la fuente pre-recortada (Will/Power Pup/Scribble) o
+    no (Saeko Sensei/Monkey King)."""
+    bbox = img.split()[-1].getbbox()
+    if bbox is None:
+        return 0
+    return (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+
+
+# Un chunk candidato a "Idle" tiene que representar una pose de tamaño
+# razonable -- se descarta cualquier chunk cuya área promedio quede por
+# debajo de esta fracción del área promedio del chunk MÁS GRANDE del
+# personaje (no de la mediana: verificado en vivo -- ver v0.5.1 en el
+# docstring del módulo -- que con un piso relativo a la mediana, algunos
+# personajes elegían un chunk perfectamente ESTABLE pero que en pantalla
+# era solo un fragmento pequeño sin relación reconocible con el personaje,
+# ej. Power Pup mostrando apenas un boomerang blanco suelto en vez de su
+# pose de pie). Entre los chunks que sí llegan a este piso de tamaño, gana
+# el más ESTABLE (menor coeficiente de variación), no el de mayor área --
+# premiar área por sobre estabilidad es lo que dejaba elegir chunks con 37x
+# de diferencia entre su frame más chico y más grande dentro del mismo
+# chunk.
+IDLE_MIN_AREA_RATIO = 0.65
+
+
+def _select_idle_chunk_index(area_chunks: list) -> int:
+    """Elige qué bloque de frames se usa como "Idle" (el loop calmo por
+    defecto): el más ESTABLE (menor variación de tamaño interna) entre los
+    que tienen un área promedio razonable, no el de mayor área promedio a
+    secas. Un bloque puede promediar grande y aun así mezclar un frame
+    minúsculo (transición) con uno enorme (pose completa) -- en loop
+    continuo eso se ve como si el personaje estuviera constantemente a
+    mitad de una transformación, no descansando (ver v0.5.1 en el docstring
+    del módulo)."""
+    def stats(chunk):
+        mean = sum(chunk) / len(chunk)
+        variance = sum((area - mean) ** 2 for area in chunk) / len(chunk)
+        coefficient_of_variation = (variance ** 0.5 / mean) if mean else 0.0
+        return mean, coefficient_of_variation
+
+    chunk_stats = [stats(chunk) for chunk in area_chunks]
+    largest_mean_area = max(mean for mean, _cv in chunk_stats)
+    area_floor = largest_mean_area * IDLE_MIN_AREA_RATIO
+
+    candidates = [i for i, (mean, _cv) in enumerate(chunk_stats) if mean >= area_floor]
+    return min(candidates, key=lambda i: chunk_stats[i][1])
+
+
 def _magenta_to_real_alpha(img: Image.Image) -> Image.Image:
     """Si la imagen no trae transparencia real (fondo mágenta opaco en vez de
     alfa), la convierte. Si YA tiene transparencia real, no cambia nada
@@ -166,8 +255,8 @@ def fetch_frames_zip_character(name: str, url: str) -> None:
         print("  (fuente sin transparencia real: se omite el filtro de icono/miniatura)")
 
     before_outlier_filter = len(frames)
-    median_area = statistics.median(f.width * f.height for f in frames)
-    frames = [f for f in frames if (f.width * f.height) <= median_area * OUTLIER_AREA_RATIO]
+    median_area = statistics.median(_tight_area(f) for f in frames)
+    frames = [f for f in frames if _tight_area(f) <= median_area * OUTLIER_AREA_RATIO]
     dropped_outliers = before_outlier_filter - len(frames)
     if dropped_outliers:
         print(f"  descartados {dropped_outliers} frame(s) atipico(s) (posible artefacto de extraccion)")
@@ -185,24 +274,26 @@ def fetch_frames_zip_character(name: str, url: str) -> None:
         col, row = index % cols, index // cols
         cell_x, cell_y = col * frame_w, row * frame_h
         # Cada frame original ya viene recortado a su propio contenido (tamaño
-        # variable), así que lo centramos horizontalmente y lo apoyamos abajo
-        # dentro de una celda de tamaño fijo (el máximo del personaje) — se
-        # pierde la posición relativa exacta entre frames que tenía el sheet
-        # original sin editar, pero es la única forma de reusar un motor de
-        # animación de frame_width/height constante con esta fuente.
+        # variable), así que lo centramos en AMBOS ejes dentro de una celda de
+        # tamaño fijo (el máximo del personaje) — se pierde la posición
+        # relativa exacta entre frames que tenía el sheet original sin editar,
+        # pero es la única forma de reusar un motor de animación de
+        # frame_width/height constante con esta fuente. Centrar en vez de
+        # apoyar abajo evita que un frame chico y uno grande consecutivos
+        # salten de posición vertical además de tamaño (v0.5.1: ver docstring
+        # del módulo, esa combinación era parte del "se ve inestable").
         paste_x = cell_x + (frame_w - frame.width) // 2
-        paste_y = cell_y + (frame_h - frame.height)
+        paste_y = cell_y + (frame_h - frame.height) // 2
         sheet.alpha_composite(frame, (paste_x, paste_y))
         positions.append((cell_x, cell_y))
-        areas.append(frame.width * frame.height)
+        areas.append(_tight_area(frame))
 
     # Partir en bloques CONSECUTIVOS (no reordenados por área) de CHUNK_SIZE:
     # frames vecinos en el material original tienen mucha más chance de
     # pertenecer al mismo gesto real que frames sueltos elegidos por tamaño.
     position_chunks = [positions[i : i + CHUNK_SIZE] for i in range(0, len(positions), CHUNK_SIZE)]
     area_chunks = [areas[i : i + CHUNK_SIZE] for i in range(0, len(areas), CHUNK_SIZE)]
-    avg_area_per_chunk = [sum(chunk) / len(chunk) for chunk in area_chunks]
-    idle_chunk_index = avg_area_per_chunk.index(max(avg_area_per_chunk))
+    idle_chunk_index = _select_idle_chunk_index(area_chunks)
 
     animations = {}
     for i, chunk in enumerate(position_chunks):

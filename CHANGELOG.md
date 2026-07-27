@@ -4,6 +4,30 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.4.2] - 2026-07-27
+
+### Corregido
+
+- **Will, Saeko Sensei y Power Pup se veían "animados cuando cargan, no
+  estables"**: el loop `Idle` de estos personajes elegía el bloque de
+  frames de mayor área PROMEDIO nomás, sin mirar cuánto variaba el tamaño
+  de un frame al siguiente dentro de ese mismo bloque (Power Pup llegaba a
+  tener 37x de diferencia entre su frame más chico y más grande dentro del
+  "Idle" elegido) — en loop continuo eso se ve como estar a mitad de una
+  transformación. Además, cada frame se apoyaba abajo dentro de su celda
+  de tamaño fijo, así que un frame chico y uno grande consecutivos también
+  saltaban de posición vertical. Investigando el bug se encontró una
+  tercera causa más sutil: Saeko Sensei y Monkey King vienen con TODOS sus
+  frames en el mismo lienzo nominal sin recortar, así que medir "área"
+  como ancho×alto del PNG no distinguía nada para estos dos — se cambió a
+  medir el bounding box real del canal alfa. Con las tres causas
+  corregidas (`tools/fetch_extra_assets.py`), Saeko Sensei y Monkey King
+  quedaron con un `Idle` prácticamente perfecto (pose completa y estable);
+  Will y Power Pup mejoraron la posición (ya no saltan verticalmente) pero
+  conservan algo de variación de tamaño — verificado en vivo que es un
+  límite real del material de origen de esos dos personajes en particular
+  (documentado en specs/SPEC.md 2.3b), no del algoritmo.
+
 ## [0.4.1] - 2026-07-27
 
 ### Corregido
