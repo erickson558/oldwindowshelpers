@@ -4,6 +4,23 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.5.1] - 2026-07-27
+
+### Corregido
+
+- **El menú de clic derecho no dejaba elegir otro personaje (ni otro
+  idioma)**: `grab_set_global()` (agregado en v0.5.0 para que el menú se
+  cerrara con un clic fuera de la app) no se extiende a otros `Toplevel` de
+  la misma aplicación, solo al que pidió el grab — y un submenú
+  ("Cambiar personaje", "Idioma") es un `Toplevel` separado del nivel
+  superior. El nivel superior se quedaba con el grab para siempre, así que
+  los clics dentro de un submenú abierto quedaban atrapados y no hacían
+  nada. Confirmado en vivo con un clic real simulado (no un evento
+  sintético de Tk, que no hubiera reproducido el problema). Se corrige
+  transfiriendo el grab al nivel más profundo actualmente abierto en vez de
+  dejarlo fijo en el nivel superior (`app/win98_menu.py`, detalle completo
+  en specs/SPEC.md 2.4b).
+
 ## [0.5.0] - 2026-07-27
 
 ### Agregado

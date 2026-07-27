@@ -502,6 +502,45 @@ un usuario. Sí se confirmó en vivo (capturas de pantalla + navegación real
 por teclado) que la apertura, el submenú, los mnemónicos, el check/radio y
 el cierre por clic-dentro-de-la-app funcionan correctamente.
 
+**v0.5.1 (bugfix real, sí llegó a publicarse en v0.5.0)**: el usuario
+reportó que el menú "no me deja elegir otro ayudante" — clic en cualquier
+personaje del submenú "Cambiar personaje" no hacía nada. Causa raíz,
+confirmada en vivo con un clic real simulado (`ctypes`/`SendInput`, no
+`event_generate` de Tk — un evento sintético de Tk no pasa por el mismo
+camino de entrada del sistema operativo que un clic real, así que no
+hubiera reproducido este bug): `grab_set_global()` (agregado en v0.5.0 para
+el problema de cierre de arriba) NO se extiende a otros `Toplevel` de la
+misma app — solo al que pidió el grab (y sus descendientes). Un submenú es
+un `Toplevel` **separado** del nivel superior; si el nivel superior se
+quedaba con el grab para siempre, los clics dentro de CUALQUIER submenú
+abierto (personajes, idioma) quedaban "atrapados" por el grab del padre y
+nunca le llegaban a la ventana real del submenú — el clic no hacía
+absolutamente nada, ni siquiera cerraba el menú.
+
+Corrección: el grab ahora lo sostiene siempre el nivel **más profundo**
+actualmente abierto, nunca dos a la vez. Cada nivel lo toma al mostrarse
+(`_show_at`); al abrir un submenú, el padre se lo suelta primero
+(`_open_submenu_for`); al cerrarse un submenú y volver a su padre (flecha
+Izquierda, Escape dentro del submenú), el padre lo vuelve a tomar (`close()`)
+— pero NO si toda la cadena se está cerrando junta (ahí no hay a quién
+devolvérselo). Verificado en vivo con clics reales simulados: elegir un
+personaje y elegir un idioma desde sus respectivos submenús vuelven a
+funcionar, sin romper el cierre por clic-afuera ya descripto arriba.
+
+Durante esta misma investigación se observó que, bajo automatización rápida
+(clics simulados a los pocos cientos de ms de abrir un submenú), la ventana
+del submenú a veces todavía no había terminado de crecer hasta su alto
+final cuando llegaba el clic — el clic cae fuera de la ventana (que
+todavía es más chica) y no hace nada. Con una espera más realista (varios
+segundos, o el tiempo de reacción normal de una persona real, bastante más
+que los ~140ms que dura la animación) el submenú siempre termina de crecer
+y el clic funciona. Se interpreta como un límite esperable de la propia
+animación de "desenrollado" (un clic en una fila que todavía no se
+desenrolló no puede acertarle — el Windows 98 real tenía la misma
+limitación) potencialmente agravado por la carga del entorno de
+automatización, no como un bug adicional del código: no se le aplicó
+ningún cambio de código a partir de esta observación.
+
 ### 2.4c Globo de diálogo estilo Windows XP (`app/balloon.py`)
 
 Pedido del usuario: que el globo de "Decime un consejo"/"Animar" tenga el

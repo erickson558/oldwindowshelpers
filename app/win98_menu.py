@@ -305,7 +305,7 @@ class Win98Menu:
         self.window.deiconify()
         self.window.lift()
         self.window.focus_force()
-        if self.parent is None and not self._grabbed:
+        if not self._grabbed:
             # Se probó primero con <FocusOut> y con comparar
             # GetForegroundWindow() contra nuestros propios hwnd -- verificado
             # EN VIVO que ninguno de los dos detecta de forma confiable que el
@@ -315,19 +315,29 @@ class Win98Menu:
             # ventana. grab_set_global es la técnica que documenta el propio
             # Tcl/Tk para este problema (a diferencia de grab_set, extiende el
             # grab a TODO el display, no solo a esta app) y es la que usamos
-            # acá; confirmado en vivo que no rompe la navegación normal del
-            # menú (clics/teclado dentro de la app siguen andando igual, y
-            # bind_all sigue cerrando el menú si el clic cae fuera de la
-            # cadena). OJO -- limitación conocida, documentada en vez de
-            # asumida: en este entorno de desarrollo no fue posible confirmar
-            # con automatización (SendInput/SetForegroundWindow) que el grab
+            # acá. OJO -- limitación conocida, documentada en vez de asumida:
+            # en este entorno de desarrollo no fue posible confirmar con
+            # automatización (SendInput/SetForegroundWindow) que el grab
             # además cierra el menú cuando el foco se lo lleva una ventana de
             # OTRO proceso -- Windows bloquea esas llamadas cuando vienen de un
             # proceso en script/segundo plano (ver specs/SPEC.md), así que ese
             # caso puntual solo se puede confirmar con una interacción real de
-            # mouse/teclado de un usuario. Solo el nivel superior toma el grab
-            # (una sola vez); los submenús ya quedan cubiertos por el grab de
-            # su raíz.
+            # mouse/teclado de un usuario.
+            #
+            # IMPORTANTE (bug real de v0.5.0, corregido en v0.5.1): el grab
+            # de Tcl/Tk NO se extiende a otros Toplevels de la misma app, solo
+            # al Toplevel que lo pidió (y sus descendientes) -- un submenú es
+            # un Toplevel SEPARADO del nivel superior. Si el nivel superior se
+            # quedaba con el grab para siempre, los clics dentro de un
+            # submenú abierto (ej. elegir un personaje de "Cambiar
+            # personaje") nunca le llegaban a ESE Toplevel: quedaban
+            # "atrapados" por el grab del padre, y el clic no hacía nada (el
+            # bug reportado: "no me deja elegir otro ayudante"). La regla
+            # correcta es que el grab lo sostiene SIEMPRE el nivel más
+            # profundo actualmente abierto, nunca dos a la vez: cada nivel lo
+            # toma al mostrarse (acá) y lo suelta al abrir un submenú propio
+            # (ver _open_submenu_for) o al cerrarse, devolviéndoselo a su
+            # padre si el padre sigue abierto (ver close()).
             self.window.grab_set_global()
             self._grabbed = True
         self._animate_open(0)
@@ -368,11 +378,26 @@ class Win98Menu:
             self.child.close()
             self.child = None
         self._cancel_pending_after()
-        if self.parent is None and self._grabbed:
+        if self._grabbed:
             try:
                 self.window.grab_release()
             except tk.TclError:
                 pass
+            self._grabbed = False
+            if self.parent is not None and not self.parent._closed:
+                # Se cierra SOLO este submenú (ej. flecha Izquierda/Escape) y
+                # el padre sigue vivo -- el grab global lo sostiene siempre
+                # el nivel más profundo actualmente abierto, así que se lo
+                # devolvemos al padre en vez de dejar la app entera sin grab
+                # (lo que reabriría el bug de clics afuera de la app sin
+                # cerrar nada, ver _show_at). Si en cambio toda la cadena se
+                # está cerrando junta (el padre ya está marcado _closed antes
+                # de llegar acá, ver más arriba), no hay a quién devolvérselo.
+                try:
+                    self.parent.window.grab_set_global()
+                    self.parent._grabbed = True
+                except tk.TclError:
+                    pass
         if self.parent is None and self._global_click_bind is not None:
             # `unbind_all` limpia TODOS los binds de "<ButtonPress-1>" sobre
             # el tag "all", no solo el nuestro -- pero en esta app solo un
@@ -568,6 +593,18 @@ class Win98Menu:
         y = py + row["y0"]
         if y + submenu.full_height > screen_h:
             y = max(0, screen_h - submenu.full_height)
+
+        # Le soltamos el grab a ESTE nivel antes de mostrar el submenú: el
+        # grab global de Tcl/Tk no se extiende a otros Toplevels de la misma
+        # app, así que si nos lo quedáramos, los clics dentro del submenú
+        # (un Toplevel distinto) nunca le llegarían -- ver la nota larga en
+        # _show_at. `_show_at` del submenú lo va a tomar él mismo.
+        if self._grabbed:
+            try:
+                self.window.grab_release()
+            except tk.TclError:
+                pass
+            self._grabbed = False
 
         submenu._show_at(x, y)
         if focus_first:
