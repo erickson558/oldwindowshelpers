@@ -68,20 +68,18 @@ Resource con frames sueltos sin agrupar por animación. Ver
 | Saeko Sensei | Maestra de escuela | Ediciones japonesas |
 | Monkey King (Mono Rey) | Sun Wukong, de "Viaje al Oeste" | Ediciones chinas |
 
-Estos 5 tienen dos animaciones en vez de las decenas nombradas del resto:
-`Idle` (un loop calmo con solo los frames más grandes/completos, para que el
-estado por defecto se vea reconocible) y `Transform` (la secuencia COMPLETA
-de frames originales, como gesto de un solo disparo — varios de estos
-personajes tienen secuencias de transformación real, ej. Power Pup
-literalmente se transforma en su alter-ego con capa, que tienen sentido
-como un gesto completo pero se ven como manchas sueltas si aparecen
-mezcladas en un loop infinito sin contexto). Por eso sí tienen entrada en
-`app/signature_actions.py`: "Animar" dispara `Transform`. Ver 2.3b para el
-detalle completo de cómo se separan y qué limitaciones tiene ese enfoque
-(no es perfecto: en personajes como Power Pup, incluso los frames más
-grandes por área a veces son un efecto — una nube de humo, una capa suelta
-— y no el personaje en sí; sin el `.acs` original no hay forma de saberlo
-con certeza).
+Estos 5 tienen `Idle` (un loop calmo con el bloque de frames consecutivos
+de mayor área promedio, para que el estado por defecto se vea razonablemente
+reconocible) más varias animaciones cortas `Motion01`, `Motion02`, etc.
+(~1.9s cada una, bloques consecutivos del resto de la secuencia original) en
+vez de las decenas nombradas del resto del roster. NO tienen entrada en
+`app/signature_actions.py` a propósito: "Decime un consejo"/"Animar" eligen
+una `MotionNN` al azar (mismo resguardo que usa cualquier personaje sin
+entrada explícita), lo que da variedad real entre gestos cortos en vez de
+repetir siempre lo mismo. Ver 2.3b para el detalle completo de cómo se
+segmentan y qué limitaciones tiene ese enfoque (no es perfecto: sin el
+`.acs` original no hay forma de saber con certeza qué frames formaban qué
+gesto real).
 
 **Investigados pero NO incorporados** (fuentes reales encontradas y
 documentadas, para una futura versión):
@@ -202,17 +200,43 @@ cada personaje frame por frame, no a ciegas):
 - **Área atípica** (`OUTLIER_AREA_RATIO`): algún frame mide muchísimo más
   que el resto (Power Pup traía uno de 791x857px, ~220x la mediana) — casi
   seguro un artefacto de la extracción original, no una pose.
-- **Frames minúsculos para el loop `Idle`** (`IDLE_TOP_N`): de los frames
-  que quedan, solo los de mayor área de contenido entran al loop `Idle` —
-  el resto queda disponible en `Transform` (ver 2.1) pero no en el loop
-  infinito. Esto es una aproximación imperfecta a propósito documentada: en
-  personajes como Power Pup, incluso los frames grandes a veces son un
-  efecto (una nube, una capa) del mismo tamaño que una pose real, así que
-  ni este filtro garantiza el 100% de los frames de `Idle` reconocibles.
+
+**Cómo se arman las animaciones** (rediseñado en v0.5.0 — la primera versión,
+en v0.4.0, tenía dos bugs reales reportados por el usuario y confirmados):
+
+- v0.4.0 armaba dos animaciones: `Idle` con los frames de MAYOR área
+  elegidos de cualquier punto de la secuencia (no consecutivos), y
+  `Transform` con TODOS los frames restantes como un solo disparo gigante.
+  Esto se veía "medio raro"/"a media animación" por dos razones reales: (1)
+  `Idle` saltaba entre poses sin relación entre sí (elegidas por área, no
+  por cercanía temporal), sin la fluidez de una animación real; (2)
+  `Transform` reproducía CIENTOS o MILES de frames de una — para Saeko
+  Sensei/Monkey King (~1300 frames a 120ms) eran **más de 2 minutos y
+  medio** por click de "Animar". Si el usuario cambiaba de personaje o
+  hacía cualquier otra cosa antes de que terminara, volvía a encontrar al
+  personaje congelado en un frame cualquiera del medio de esa secuencia
+  gigante — de ahí el "se ve a media animación".
+- v0.5.0 en cambio parte la secuencia (ya filtrada de basura/atípicos, EN
+  SU ORDEN ORIGINAL, sin reordenar por área) en bloques CONSECUTIVOS de
+  `CHUNK_SIZE` frames (16 ⇒ ~1.9s cada uno a 120ms/frame). Frames vecinos en
+  el material original tienen mucha más chance de pertenecer al mismo gesto
+  real que frames sueltos elegidos por tamaño, así que cada bloque se ve
+  como una animación corta con sentido en vez de un collage — aunque sigue
+  siendo una aproximación (algunos bloques todavía mezclan un efecto con
+  una pose, ver ejemplos verificados visualmente más abajo). El bloque con
+  mayor área de contenido PROMEDIO se renombra `Idle` (el loop por
+  defecto); el resto quedan como `Motion01`, `Motion02`, etc. — one-shots
+  que "Decime un consejo"/"Animar" eligen al azar (no tienen entrada en
+  `app/signature_actions.py` a propósito, así cae al resguardo aleatorio y
+  se recupera la variedad de "animaciones random" que memoraba el usuario
+  de los personajes de alta fidelidad). Cada personaje termina con entre 8
+  (Scribble) y 84 (Monkey King) animaciones cortas, según su cantidad total
+  de frames.
 
 Cada personaje se verificó visualmente (recortando frames de muestra sobre
 un fondo verde brillante, para detectar tanto problemas de transparencia
-como de contenido) antes de darlo por bueno.
+como de contenido, y revisando bloques `Motion` completos para confirmar
+que ya no duran minutos) antes de darlo por bueno.
 
 ### 2.3c Cómo se recuperaron las animaciones completas de Mother Nature,
 ### Office Logo, The Dot y Kairu (`tools/acs_decoder.py`)
@@ -315,7 +339,11 @@ texto, pero con una diferencia de intención:
 | Office Logo | `Show` | No tiene cara ni gestos propios; su animación de aparición es lo más "de su personalidad" que existe. |
 | The Dot | `Explain` | Explica cambiando de forma, coherente con su frase característica. |
 | Kairu | `Wave` | Un delfín + una ola, el chiste se arma solo. |
-| Power Pup, Scribble, Will, Saeko Sensei, Monkey King | `Transform` | Su secuencia completa de transformación (ver 2.1/2.3b) — es justo lo que "Animar" debería mostrar. |
+
+Power Pup, Scribble, Will, Saeko Sensei y Monkey King **no** están en esta
+tabla a propósito (ver 2.1/2.3b): en vez de una animación de firma fija,
+"Animar" les elige al azar una de sus `MotionNN` cortas — variedad real en
+vez de siempre el mismo gesto.
 
 Si se agrega un personaje nuevo sin entrada en `SIGNATURE_ANIMATIONS`, o sin
 traducción `animate.<Nombre>`, "Animar" no rompe: cae a una animación
@@ -417,10 +445,11 @@ del registro sin avisar. Mitigaciones aplicadas:
 - [x] Mother Nature, Office Logo, The Dot y Kairu tienen animaciones
       completas y nombradas (no una sola "Idle"), decodificadas de su `.acs`
       real (2.3c).
-- [x] Power Pup, Scribble, Will, Saeko Sensei y Monkey King separan `Idle`
-      (poses reconocibles, loop calmo) de `Transform` (secuencia completa,
-      un solo disparo vía "Animar"), en vez de mezclar todo en un loop —
-      verificado visualmente que ya no predominan las manchas sin forma.
+- [x] Power Pup, Scribble, Will, Saeko Sensei y Monkey King tienen `Idle`
+      (loop calmo) más varias `MotionNN` cortas (~2s cada una, no minutos)
+      en vez de una única animación gigante — verificado que "Animar" ya no
+      deja al personaje "pegado a media animación" y que hay variedad real
+      entre distintos clics.
 - [x] El roster completo (15 personajes) pasa `test_full_expected_roster_is_present`.
 - [x] Si un antivirus bloquea "Iniciar con Windows", la app avisa con un
       mensaje claro en vez de crashear, y reintenta activarlo la próxima vez.

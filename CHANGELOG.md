@@ -4,6 +4,23 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.4.1] - 2026-07-27
+
+### Corregido
+
+- **Power Pup, Will y los personajes de fidelidad reducida se veían "a
+  media animación"**: el diseño de v0.4.0 reproducía TODOS los frames del
+  personaje como un solo disparo — para Saeko Sensei/Monkey King eso eran
+  **más de 2 minutos y medio** por click de "Animar". Si el usuario hacía
+  cualquier otra cosa antes de que terminara, volvía a encontrar al
+  personaje congelado en un frame cualquiera del medio. Se reemplaza por
+  varias animaciones cortas (`MotionNN`, ~2s cada una), partiendo la
+  secuencia en bloques consecutivos en vez de una sola animación gigante.
+- De paso se recupera la variedad de "animaciones random" que tienen el
+  resto de los personajes: antes "Decime un consejo"/"Animar" repetían
+  siempre la misma secuencia completa; ahora eligen al azar entre 8-84
+  gestos cortos distintos según el personaje.
+
 ## [0.4.0] - 2026-07-25
 
 ### Corregido

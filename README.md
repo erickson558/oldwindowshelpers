@@ -1,6 +1,6 @@
 # OldWindowsHelpers 📎
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.1-blue)](CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey)](#requisitos)
 
@@ -33,8 +33,8 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 - **15 personajes clásicos** listos para usar — los verdaderos "Office
   Assistant" de Microsoft Office. 10 con animaciones completas y nombradas
   (Clippy, F1, Genius, Links, Merlín, Rocky, Mother Nature, Office Logo,
-  The Dot y Kairu) y 5 con "Idle" (poses grandes) + "Transform" (secuencia
-  completa de un solo disparo) por no haber podido recuperar su archivo
+  The Dot y Kairu) y 5 con "Idle" + varias animaciones cortas `MotionNN`
+  (~2s cada una, elegidas al azar) por no haber podido recuperar su archivo
   original (Power Pup, Scribble, Will, Saeko Sensei, Monkey King) — ver
   [`specs/SPEC.md`](specs/SPEC.md) 2.1.
 - **Mismo tamaño y sin fleco de color** en todos los personajes, sin

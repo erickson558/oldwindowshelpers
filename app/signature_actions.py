@@ -23,11 +23,17 @@ personaje, priorizando lo que resulta más "de su personalidad":
                             ("puedo ser la forma que quieras que sea").
 - Kairu:        Wave     -> un delfín + una ola, el chiste se arma solo.
 
-Para Power Pup, Scribble, Will, Saeko Sensei y Monkey King (los 5 de
-fidelidad reducida — ver tools/fetch_extra_assets.py y specs/SPEC.md 2.3b)
-no hay animaciones nombradas individuales, pero SÍ tienen una animación
-"Transform" (la secuencia completa de frames, de un solo disparo) — que es
-justamente lo que "Animar" debería mostrar, así que apunta ahí para los 5.
+Power Pup, Scribble, Will, Saeko Sensei y Monkey King (los 5 de fidelidad
+reducida — ver tools/fetch_extra_assets.py y specs/SPEC.md 2.3b) NO tienen
+entrada acá a propósito: en vez de una única animación "Transform" con
+TODOS sus frames (lo que hacía v0.4.0 — para Saeko Sensei/Monkey King eso
+eran ¡más de 2 minutos y medio por click!, y si el usuario cambiaba de
+personaje antes de que terminara quedaba "pegada" en un frame cualquiera
+del medio), ahora tienen varias animaciones cortas nombradas "MotionNN"
+(~2 segundos cada una). Al no tener entrada en SIGNATURE_ANIMATIONS, caen
+directo al resguardo de acá abajo (one-shot al azar) — que es EXACTAMENTE
+lo que se quiere: variedad real entre varias animaciones cortas, en vez de
+siempre la misma secuencia gigante.
 
 Si se agrega un personaje nuevo sin entrada acá, `get_signature_animation`
 cae de vuelta a una animación "one-shot" al azar (ver Assistant.one_shot_animations
@@ -47,11 +53,6 @@ SIGNATURE_ANIMATIONS: dict[str, str] = {
     "OfficeLogo": "Show",
     "Dot": "Explain",
     "Kairu": "Wave",
-    "PowerPup": "Transform",
-    "Scribble": "Transform",
-    "Will": "Transform",
-    "SaekoSensei": "Transform",
-    "MonkeyKing": "Transform",
 }
 
 

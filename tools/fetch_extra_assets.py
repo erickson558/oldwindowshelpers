@@ -10,23 +10,38 @@ recortado a su propio contenido). Se recomponen en un sprite sheet nuevo,
 centrando cada frame horizontalmente y apoyándolo abajo dentro de una celda
 de tamaño fijo (el máximo del personaje, sin contar valores atípicos).
 
-Como no sabemos qué frames formaban qué animación con nombre, se arman DOS
-animaciones en vez de las decenas nombradas que tiene el resto del roster:
+Cómo se arman las animaciones (v0.5.0, reemplaza al esquema Idle/Transform
+de v0.4.0 — ver por qué en specs/SPEC.md 2.3b):
 
-  - "Idle": solo los frames más grandes (el personaje "de cuerpo casi
-    completo"), en loop calmo — así el estado por defecto siempre se ve
-    reconocible.
-  - "Transform": la secuencia COMPLETA de frames, en el orden original, como
-    animación de un solo disparo — muchos de estos personajes tienen
-    secuencias de transformación (el cuerpo cambiando de forma paso a paso;
-    Power Pup literalmente se "transforma" en su alter-ego con capa) que se
-    ven como manchas sin sentido si aparecen sueltas en un loop infinito,
-    pero tienen sentido como un gesto completo de una sola vez. Se dispara
-    con "Decime un consejo"/"Animar" igual que cualquier one-shot.
+Como no sabemos qué frames formaban qué animación con nombre, la v0.4.0
+probó con solo dos animaciones: "Idle" (frames grandes sueltos, cherry-
+picked de cualquier punto de la secuencia) y "Transform" (¡la secuencia
+COMPLETA como un solo disparo!). Eso resultó en dos problemas reales,
+reportados por el usuario y confirmados: (1) el loop de "Idle" saltaba
+entre poses sin relación (elegidas por área, no por cercanía en la
+secuencia original), y se veía como una sucesión de cortes en vez de una
+animación fluida; (2) "Transform" reproducía TODOS los frames del personaje
+de una — para Saeko Sensei/Monkey King (~1300 frames a 120ms) eso son
+¡más de 2 minutos y medio! Si el usuario cambiaba de personaje o hacía
+cualquier otra cosa antes de que terminara, al volver lo encontraba
+congelado en un frame cualquiera del medio — exactamente el "se ve a media
+animación" que se reportó.
+
+La solución: partir la secuencia (ya en su orden original, sin reordenar
+por área) en bloques CONSECUTIVOS de `CHUNK_SIZE` frames, cada uno una
+animación nombrada "MotionNN" de pocos segundos de largo. Frames
+consecutivos en el material original tienen mucha más chance de pertenecer
+al mismo gesto real que frames elegidos por área de cualquier punto de la
+secuencia, así que cada bloque se ve como una animación corta con sentido
+en vez de un collage. El bloque con mayor área promedio (más chance de ser
+"personaje de cuerpo casi completo") se renombra "Idle" y es el que hace
+loop por defecto; el resto quedan como one-shots — "Decime un consejo" y
+"Animar" eligen uno al azar entre ellos, así se recupera la variedad de
+"animaciones random" que tienen el resto de los personajes.
 
 Ver specs/SPEC.md 2.1/2.3b para más detalle, y qué se intentó para
-conseguirles animaciones completas y nombradas también (algunos, como Power
-Pup y Scribble, quedaron sin encontrarse su .acs pese a buscarlo).
+conseguirles animaciones completas y nombradas también (ninguno de estos 5
+tiene su .acs encontrado pese a buscarlo en varias sesiones).
 
 IMPORTANTE (ver NOTICE): igual que con tools/fetch_assets.py, el arte es
 propiedad de Microsoft. A diferencia de clippy.js, The Spriters Resource
@@ -64,16 +79,6 @@ ASSETS_DIR = PROJECT_ROOT / "assets" / "agents"
 # esquina. Se descartan frames cuya área supere este múltiplo de la mediana.
 OUTLIER_AREA_RATIO = 15
 
-# Qué frames entran en el loop "Idle" (los demás quedan solo en "Transform"):
-# los de MAYOR área de contenido, como aproximación de "pose grande/completa".
-# Ojo: es una aproximación imperfecta a propósito documentada — en personajes
-# como Power Pup, incluso los frames más grandes incluyen efectos (nubes de
-# humo, capas sueltas) del mismo tamaño que una pose real del personaje, así
-# que ni el filtro por área más agresivo garantiza el 100% de los frames de
-# "Idle" reconocibles. Sin el .acs original (que no se consiguió para estos
-# personajes) no hay forma de separarlo con certeza — ver specs/SPEC.md 2.3b.
-IDLE_TOP_N = 16
-
 # Algunos ZIPs traen, colado entre los frames reales, algún ícono/miniatura
 # promocional de fondo sólido (encontrado en Scribble: un ícono de "cara de
 # gato" y una miniatura de modelo 3D en wireframe — ninguno es un frame de
@@ -90,6 +95,15 @@ MAX_OPAQUE_FILL_RATIO = 0.85
 # convertirlo, se verían como un rectángulo mágenta opaco en vez de la
 # silueta del personaje.
 MAGENTA_KEY = (255, 0, 255)
+
+# Cuántos frames CONSECUTIVOS (en el orden original) forman cada animación
+# nombrada "MotionNN". A FRAME_DURATION_MS=120, 16 frames son ~1.9s -- un
+# gesto de duración parecida a los one-shots de los personajes de alta
+# fidelidad, ni tan corto que no se note ni tan largo que se sienta
+# "trabado" si el usuario hace otra cosa mientras tanto (ver docstring del
+# módulo: el bug real que esto reemplaza era una sola animación de HASTA
+# 2.6 MINUTOS).
+CHUNK_SIZE = 16
 
 FRAMES_ZIP_CHARACTERS = {
     "Scribble": "https://www.spriters-resource.com/media/assets/504/522069.zip",
@@ -182,11 +196,20 @@ def fetch_frames_zip_character(name: str, url: str) -> None:
         positions.append((cell_x, cell_y))
         areas.append(frame.width * frame.height)
 
-    ranked = sorted(range(len(positions)), key=lambda i: areas[i], reverse=True)
-    top_n = ranked[:IDLE_TOP_N]
-    # se conserva el orden original (no el de ranking) para que el loop de
-    # Idle no salte de una pose grande a otra sin transición visual prolija
-    idle_positions = [positions[i] for i in sorted(top_n)]
+    # Partir en bloques CONSECUTIVOS (no reordenados por área) de CHUNK_SIZE:
+    # frames vecinos en el material original tienen mucha más chance de
+    # pertenecer al mismo gesto real que frames sueltos elegidos por tamaño.
+    position_chunks = [positions[i : i + CHUNK_SIZE] for i in range(0, len(positions), CHUNK_SIZE)]
+    area_chunks = [areas[i : i + CHUNK_SIZE] for i in range(0, len(areas), CHUNK_SIZE)]
+    avg_area_per_chunk = [sum(chunk) / len(chunk) for chunk in area_chunks]
+    idle_chunk_index = avg_area_per_chunk.index(max(avg_area_per_chunk))
+
+    animations = {}
+    for i, chunk in enumerate(position_chunks):
+        anim_name = "Idle" if i == idle_chunk_index else f"Motion{i + 1:02d}"
+        animations[anim_name] = [
+            {"duration": FRAME_DURATION_MS, "images": [[x, y]]} for x, y in chunk
+        ]
 
     dest = ASSETS_DIR / name
     dest.mkdir(parents=True, exist_ok=True)
@@ -196,17 +219,15 @@ def fetch_frames_zip_character(name: str, url: str) -> None:
         "sprite": "map.png",
         "frame_width": frame_w,
         "frame_height": frame_h,
-        "animations": {
-            "Idle": [{"duration": FRAME_DURATION_MS, "images": [[x, y]]} for x, y in idle_positions],
-            "Transform": [{"duration": FRAME_DURATION_MS, "images": [[x, y]]} for x, y in positions],
-        },
+        "animations": animations,
     }
     (dest / "agent.json").write_text(
         json.dumps(agent, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    one_shot_count = len(animations) - 1
     print(
-        f"  OK: {name} -> Idle: {len(idle_positions)} frames (poses grandes) / "
-        f"Transform: {len(positions)} frames (secuencia completa, one-shot)"
+        f"  OK: {name} -> {len(animations)} animaciones "
+        f"(1 Idle + {one_shot_count} one-shots de ~{CHUNK_SIZE * FRAME_DURATION_MS / 1000:.1f}s cada una)"
     )
 
 
