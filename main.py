@@ -57,12 +57,25 @@ class OldWindowsHelpersApp:
         self.tray_icon = None
         start_tray_icon(self)
 
+        # Referencia al menú Win98 actualmente abierto (si hay uno), para
+        # poder cerrarlo si llega un nuevo clic derecho antes de que el
+        # anterior se haya cerrado solo (ver show_context_menu).
+        self._context_menu = None
+
         self.root.after(AUTO_TIP_INTERVAL_MS, self._auto_tip_loop)
 
     # --- acciones invocadas desde el menú (ventana o bandeja) ----------------------
     def show_context_menu(self, x: int, y: int) -> None:
+        # Si ya había un menú abierto (ej. clic derecho repetido antes de que
+        # el anterior terminara de cerrarse), lo cerramos primero -- Win98Menu
+        # ya es tolerante a un close() redundante (ver app/win98_menu.py), así
+        # que esto es seguro incluso si el menú anterior ya se había cerrado
+        # solo (clic afuera, Escape, perder el foco, etc.).
+        if self._context_menu is not None:
+            self._context_menu.close()
         menu = build_context_menu(self, self.character_window.window)
-        menu.tk_popup(x, y)
+        self._context_menu = menu
+        menu.popup(x, y)
 
     def change_character(self, name: str) -> None:
         self.character_var.set(name)

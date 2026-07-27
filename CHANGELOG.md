@@ -4,6 +4,43 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.5.0] - 2026-07-27
+
+### Agregado
+
+- **Menú de clic derecho con estilo Windows 98**: la ventana flotante ya no
+  usa el menú nativo de Tkinter (en Windows no se puede recolorear ni
+  animar) sino un widget propio (`app/win98_menu.py`) con la estética
+  clásica — cara gris, selección azul marino, bordes/separadores hundidos —
+  y una animación de "desenrollado" al abrirse, igual que el efecto real de
+  menús de Windows 98. El menú de la bandeja del sistema sigue siendo el
+  nativo del sistema operativo (no se puede reskinar, es un camino de
+  render completamente distinto).
+- **Letras mnemónicas subrayadas, siempre visibles**: cada opción del menú
+  tiene una letra propia (sin colisiones dentro de un mismo nivel,
+  verificado con tests) que se puede apretar directamente para activarla —
+  a diferencia de Windows moderno, no quedan ocultas hasta apretar Alt.
+  Navegación completa por teclado (flechas, Enter, Escape, apertura/cierre
+  de submenús).
+- **Globo de diálogo estilo Windows XP**: "Decime un consejo"/"Animar" ya no
+  muestran un rectángulo plano — ahora es un globo con forma de tooltip/
+  balloon clásico (rounded rectangle, cola apuntando al personaje, sombra),
+  horneado como un único bitmap con Pillow (misma técnica de endurecido de
+  alfa que ya usan los sprites, para no repetir el bug del halo mágenta).
+
+### Corregido (encontrado en revisión adversarial antes de publicarse)
+
+- El wrap de texto del globo nuevo no cortaba una palabra sin espacios más
+  ancha que el área de wrap (una URL, un typo de traducción), generando un
+  globo de miles de píxeles de ancho — se agregó corte carácter-por-carácter
+  como resguardo, igual que hacía el `wraplength` de Tk que se reemplazó.
+- El menú nuevo no se cerraba si el usuario hacía clic fuera de la app
+  entera (el escritorio, la barra de tareas, otra ventana) — solo cubría
+  clics dentro de la propia app. Se agrega `grab_set_global()` (la técnica
+  que documenta Tcl/Tk para esto) — ver specs/SPEC.md 2.4b para el detalle
+  de qué otras dos soluciones se probaron y no funcionaron de forma
+  confiable, y la limitación conocida que queda documentada a propósito.
+
 ## [0.4.2] - 2026-07-27
 
 ### Corregido

@@ -381,6 +381,13 @@ Cambiar personaje ▸ · Decime un consejo · **Animar** · Ayuda de Windows ·
 Siempre visible (toggle) · Ocultar/Mostrar · Idioma ▸ (es/en) · Iniciar con
 Windows (toggle) · Acerca de · ☕ Cómprame una cerveza · Salir.
 
+Desde v0.5.2 (ver 2.4b), el menú de la **ventana flotante** es un widget
+propio con la estética de Windows 98 y letras mnemónicas subrayadas. El menú
+de la **bandeja del sistema** (`app/tray.py`, vía `pystray`) sigue siendo el
+menú nativo del sistema operativo — es un camino de render completamente
+distinto (fuera de Tk, lo dibuja el propio Windows), así que no tiene ni
+puede tener este mismo look; no es un descuido.
+
 "Ayuda de Windows" simula la tecla F1 (`app/windows_help.py`) — el atajo de
 ayuda contextual universal de Windows desde la versión 95 hasta hoy — en vez
 de intentar abrir un ejecutable de ayuda específico por versión de Windows
@@ -421,6 +428,114 @@ Si se agrega un personaje nuevo sin entrada en `SIGNATURE_ANIMATIONS`, o sin
 traducción `animate.<Nombre>`, "Animar" no rompe: cae a una animación
 one-shot al azar y a un tip genérico respectivamente (mismo mecanismo de
 respaldo que usa "Decime un consejo").
+
+### 2.4b Menú estilo Windows 98 (`app/win98_menu.py`)
+
+Pedido del usuario: que el menú de clic derecho tenga el color/forma/
+animación de Windows 98, y atajos de teclado con letras subrayadas siempre
+visibles (no ocultas hasta apretar Alt, como en Windows moderno).
+
+**Por qué no alcanza con `tkinter.Menu`**: en Windows, `tk.Menu` delega el
+dibujo al menú emergente nativo de Win32 (`TrackPopupMenu`) — ese menú nativo
+ignora `bg`/`activebackground`/`font`/`border` (los pinta el propio Windows
+con el tema visual activo del sistema) y no se puede animar cuadro a cuadro
+desde Tcl/Tk. Confirmado antes de escribir código: no hay combinación de
+opciones de `tk.Menu` que logre el look pedido. Por eso `app/win98_menu.py`
+reconstruye el menú desde cero: un `Toplevel` sin bordes (`overrideredirect`)
+con un `Canvas` adentro dibujado, posicionado y animado a mano.
+
+Piezas: `MenuItem` (una fila: comando/check/radio/separador/cascada + el
+índice del carácter a subrayar) y `Win98Menu` (un nivel del menú — el
+superior o un submenú abierto — encadenado a sus hijos vía `parent`/`child`
+para poder cerrarlos en cascada).
+
+Estética: cara `#C0C0C0`, selección azul marino `#000080` con texto blanco,
+borde de 1px negro, separadores como línea "groove" hundida de 2px, tilde/
+bullet en un gutter izquierdo para check/radio activos, flechita de cascada.
+Fuente: intenta `"MS Sans Serif"` (period-correct) y cae a `"Segoe UI"` o la
+fuente por defecto de Tk si no está instalada (lo más probable en una máquina
+moderna — dejó de tipearse desde XP).
+
+**Mnemónicos**: cada item tiene UNA letra fija (elegida a mano, sin
+colisiones dentro de su mismo nivel de menú — ver `tests/test_win98_menu.py`,
+que falla si un cambio futuro introduce una colisión) que se subraya
+dibujando una línea corta bajo esa letra con `font.measure()` — a diferencia
+de Windows moderno, siempre visible, nunca oculta hasta Alt. Apretar esa
+letra (con o sin Alt) salta a ese item y lo activa; flechas
+arriba/abajo/derecha/izquierda navegan y abren/cierran cascadas; Enter/
+Espacio activa; Escape cierra el submenú actual o todo el menú.
+
+**Animación "Scroll"** (la que traía Windows 98 para menús): el Canvas
+arranca con alto 0 y crece hasta su alto final en ~140ms (7 pasos vía
+`after()`), desenrollándose hacia abajo desde el punto de clic — el Canvas
+recorta su propio contenido al tamaño que tenga en cada momento, así que no
+hace falta redibujar nada por cuadro, solo reposicionar. Los submenús usan la
+misma animación al abrirse.
+
+**Cierre del menú — la parte más delicada, y la única bugueada en la primera
+versión** (encontrado por revisión adversarial de código antes de publicarse,
+nunca llegó a los usuarios): clic afuera del menú (pero dentro de la app) lo
+cierra vía un `bind_all("<ButtonPress-1>")` que registra solo el nivel
+superior. El hueco real: un clic en el escritorio, la barra de tareas o
+CUALQUIER OTRA aplicación nunca genera un evento Tk, así que ese bind no lo
+ve — el menú se quedaba flotando para siempre. Se probaron, en vivo, dos
+soluciones que NO funcionan de forma confiable para una ventana
+`overrideredirect`: (1) el evento `<FocusOut>` de Tk — verificado que Tk
+sigue reportando foco interno propio (`focus_get()`) aunque Windows ya le
+haya dado el foco real a otra ventana/proceso; (2) comparar
+`GetForegroundWindow()` contra el hwnd propio — verificado que, en muchos
+casos, el hwnd de un popup `overrideredirect` NUNCA coincide con el
+"foreground window" real de Windows, incluso cuando el menú está
+funcionando perfectamente bien, lo que haría que esta comprobación cerrara
+el menú de inmediato por error. La solución que sí es la correcta según la
+propia documentación de Tcl/Tk es `grab_set_global()` (a diferencia de
+`grab_set`, extiende el grab a TODO el display, no solo a esta app) — la
+toma únicamente el nivel superior, al mostrarse. **Límite conocido y
+documentado a propósito, no descubierto tarde**: en el entorno de
+desarrollo no fue posible confirmar con automatización (`SendInput`/
+`SetForegroundWindow` vía `ctypes`) que el grab efectivamente cierra el menú
+cuando el foco real se lo lleva una ventana de otro proceso — Windows
+bloquea esas llamadas cuando vienen de un proceso en script/segundo plano
+(protección conocida como "foreground lock timeout"), así que ese caso
+puntual solo puede confirmarse con una interacción real de mouse/teclado de
+un usuario. Sí se confirmó en vivo (capturas de pantalla + navegación real
+por teclado) que la apertura, el submenú, los mnemónicos, el check/radio y
+el cierre por clic-dentro-de-la-app funcionan correctamente.
+
+### 2.4c Globo de diálogo estilo Windows XP (`app/balloon.py`)
+
+Pedido del usuario: que el globo de "Decime un consejo"/"Animar" tenga el
+estilo clásico de Windows XP (el de los tooltips/Office Assistant) — rounded
+rectangle amarillo pálido, borde fino, una cola apuntando al personaje,
+sombra suave; sin barra de título ni botón de cerrar (eso es del estilo de
+notificación de bandeja, no del globo de un Ayudante).
+
+Igual que con los sprites de los personajes, la transparencia por color-key
+de este proyecto (`-transparentcolor`, ver 2.2) no hace blending real —
+cualquier borde antialiased que produjera un Canvas/Label compuestos sobre el
+color llave dejaría el mismo halo mágenta ya conocido. Por eso
+`render_balloon()` dibuja TODO —sombra, cuerpo, cola y texto— en un único
+bitmap RGBA con Pillow y le aplica el mismo endurecido de alfa binario que
+usa `app/animation.py`, antes de mostrarlo en una ventana `Toplevel`
+color-key (idéntica técnica a la ventana del personaje).
+
+Detalle de armado: la sombra es una silueta sólida y opaca (no hay
+translucidez real posible) apenas desplazada; la cola se dibuja SIN su
+propio contorno de base — en su lugar se "borra" el tramo del contorno del
+cuerpo justo donde nace la cola (repintándolo con el color de relleno) y se
+dibujan solo sus dos lados inclinados, para que el contorno fluya continuo
+entre cuerpo y cola en vez de verse una costura donde se tocan.
+
+**Bug real encontrado y corregido antes de publicarse** (revisión
+adversarial de código, nunca llegó a los usuarios): el wrap de texto a mano
+solo cortaba en espacios — una sola "palabra" sin espacios más ancha que
+`WRAP_WIDTH` (una URL, un typo de traducción que se comió un espacio) nunca
+se recortaba, y el globo entero terminaba tan ancho como esa palabra
+(confirmado: un string de 300 caracteres sin espacios generaba un globo de
+~2700px de ancho). El `Label` de Tkinter que este módulo reemplaza SÍ cortaba
+a media palabra en ese caso (`wraplength` de Tk corta donde haga falta) — se
+corrigió agregando ese mismo corte carácter-por-carácter como resguardo
+(`tests/test_balloon.py` fija esto para que no vuelva a colarse).
 
 ### 2.5 Multi-idioma
 
@@ -525,3 +640,13 @@ del registro sin avisar. Mitigaciones aplicadas:
 - [x] El roster completo (15 personajes) pasa `test_full_expected_roster_is_present`.
 - [x] Si un antivirus bloquea "Iniciar con Windows", la app avisa con un
       mensaje claro en vez de crashear, y reintenta activarlo la próxima vez.
+- [x] El menú de clic derecho de la ventana flotante tiene el color/forma/
+      animación de Windows 98 (verificado en vivo: cara gris, selección
+      navy, bordes/separadores, animación de desenrollado) y cada item
+      tiene su letra mnemónica subrayada siempre visible, sin colisiones
+      dentro de un mismo nivel de menú (2.4b, `tests/test_win98_menu.py`).
+- [x] El globo de "Decime un consejo"/"Animar" tiene el estilo de tooltip/
+      balloon de Windows XP (rounded rectangle, cola, sombra) en vez del
+      rectángulo plano anterior, y no genera un globo desmedido con texto
+      patológico (una palabra sin espacios más larga que el ancho de wrap)
+      (2.4c, `tests/test_balloon.py`).

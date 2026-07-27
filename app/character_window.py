@@ -5,12 +5,17 @@ Truco de transparencia: en Windows, Tk permite declarar un color "llave" con
 (clic incluido) y se ve el escritorio detrás. Ponemos ese mismo color como
 fondo del Label que contiene el sprite, así solo se ve el personaje (con sus
 bordes antialiased fundiéndose en el color llave, imperceptible en la práctica).
-Es la técnica estándar para "mascotas de escritorio" en Tkinter.
+Es la técnica estándar para "mascotas de escritorio" en Tkinter. El globo de
+diálogo (`show_speech_bubble`) reutiliza exactamente la misma técnica: ver
+app/balloon.py para cómo se hornea la forma del globo en un único bitmap.
 """
 
 import tkinter as tk
 
+from PIL import ImageTk
+
 from .animation import Assistant
+from .balloon import render_balloon
 
 TRANSPARENT_KEY = "#ff00ff"  # magenta puro: prácticamente nunca aparece en el arte de estos personajes
 BUBBLE_BG = "#ffffe1"  # amarillo pálido clásico de globo de ayuda de Windows
@@ -121,22 +126,26 @@ class CharacterWindow:
         return self.window.state() != "withdrawn"
 
     def show_speech_bubble(self, text: str, duration_ms: int = 4000) -> None:
+        # El globo entero (forma redondeada + cola + sombra + texto) llega ya
+        # "horneado" como un único bitmap RGBA desde app/balloon.py — acá solo
+        # falta mostrarlo en una ventana Toplevel color-key, exactamente la
+        # misma técnica de transparencia que usa la ventana del personaje
+        # (ver el docstring del módulo). Un solo bitmap evita tener que
+        # componer forma + texto con widgets separados sobre el color llave,
+        # que es justamente lo que produciría el halo mágenta en los bordes
+        # antialiased de la forma y del texto (el mismo bug ya conocido de
+        # los sprites, ver app/animation.py).
+        balloon_image, _tail_x, _tail_y = render_balloon(text, bg_color=BUBBLE_BG)
+        photo = ImageTk.PhotoImage(balloon_image)
+
         bubble = tk.Toplevel(self.window)
         bubble.overrideredirect(True)
         bubble.attributes("-topmost", True)
-        label = tk.Label(
-            bubble,
-            text=text,
-            bg=BUBBLE_BG,
-            fg="#000000",
-            font=("Comic Sans MS", 9),
-            wraplength=220,
-            justify="left",
-            padx=10,
-            pady=8,
-            relief="solid",
-            bd=1,
-        )
+        bubble.attributes("-transparentcolor", TRANSPARENT_KEY)
+        bubble.configure(bg=TRANSPARENT_KEY)
+
+        label = tk.Label(bubble, image=photo, bg=TRANSPARENT_KEY, bd=0)
+        label.image = photo  # evita que el garbage collector se lo lleve
         label.pack()
 
         x = self.window.winfo_x() - 200

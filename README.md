@@ -1,6 +1,6 @@
 # OldWindowsHelpers 📎
 
-[![Version](https://img.shields.io/badge/version-0.4.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey)](#requisitos)
 
@@ -40,9 +40,15 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
 - **Mismo tamaño y sin fleco de color** en todos los personajes, sin
   importar el tamaño real de su sprite original, y con soporte para
   pantallas de alto DPI (ver `app/animation.py` y `app/dpi.py`).
-- **Menú de clic derecho** (también disponible en la bandeja del sistema):
+- **Menú de clic derecho con estilo Windows 98**: sobre la ventana flotante,
+  un menú propio (no el nativo de Tkinter, que en Windows no se puede
+  recolorear ni animar) con la estética clásica — gris, selección azul
+  marino, animación de desenrollado — y **letras mnemónicas subrayadas
+  siempre visibles** (Alt+letra, o directamente la letra, activa cada
+  opción). También disponible (sin este estilo, con el menú nativo del
+  sistema) desde la bandeja:
   - Cambiar personaje
-  - Decime un consejo (con globo de diálogo)
+  - Decime un consejo (con globo de diálogo estilo Windows XP)
   - **Animar**: el gesto de firma de cada personaje (Clippy se hace mago,
     Merlín tira un hechizo exclusivo suyo, Rocky escarba en la basura, etc.)
   - Ayuda de Windows (simula F1, el atajo universal de ayuda)
@@ -52,7 +58,9 @@ como en Office 97/2000/XP/2003, pero para cualquier Windows moderno.
   - Acerca de
   - ☕ Cómprame una cerveza
   - Salir
-- **Consejos automáticos** cada cierto tiempo, además de bajo demanda.
+- **Consejos automáticos** cada cierto tiempo, además de bajo demanda, en un
+  globo de diálogo con la forma clásica de Windows XP (rounded rectangle,
+  cola, sombra).
 - **Multi-idioma** (es/en), detecta el idioma de Windows por defecto.
 - **Sin consola**: corre como app de escritorio pura (`--windowed`).
 - Herramientas para **agregar más personajes** propios, incluyendo un
@@ -165,7 +173,9 @@ oldwindowshelpers/
 ├── app/                       # código de la aplicación
 │   ├── character_window.py   # ventana flotante + animación + drag
 │   ├── animation.py           # motor de sprite sheets
-│   ├── menu_actions.py         # menú de clic derecho
+│   ├── menu_actions.py         # arma el menú de clic derecho (Win98Menu)
+│   ├── win98_menu.py            # widget de menú propio, estilo Windows 98
+│   ├── balloon.py                # globo de diálogo estilo Windows XP
 │   ├── signature_actions.py    # gesto de firma por personaje ("Animar")
 │   ├── tray.py                 # ícono de bandeja del sistema
 │   ├── settings.py             # config.json + autoarranque (registro de Windows)
