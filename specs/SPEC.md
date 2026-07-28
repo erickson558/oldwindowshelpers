@@ -576,6 +576,39 @@ canvas "aterrizó" el evento a nivel Tk. `tests/test_win98_menu.py` fija
 este escenario exacto (un `<Motion>` que "llega" al hijo pero con
 coordenadas raíz sobre una fila del padre) como prueba de regresión.
 
+**v0.5.3 (bugfix real — el mismo reporte del usuario reapareció tras
+v0.5.2)**: el usuario volvió a reportar el mismo síntoma ("al llegar acá
+no pasa hasta que hago click en algún idioma", con una captura mostrando
+"Idioma" resaltado con su submenú ES/EN abierto). El fix de v0.5.2
+corregía CÓMO se interpretaba un `<Motion>` que llegaba a un canvas
+distinto del correcto — pero la hipótesis de fondo de esa misma sección
+("`SetCursorPos` tampoco genera `<Motion>` de forma confiable... la misma
+limitación ya documentada para `SetForegroundWindow`") resultó ser el
+problema real, no solo una limitación de la automatización de pruebas:
+confirmado que, en uso real, un `<Motion>` de Windows simplemente **no se
+genera en absoluto** una vez que el mouse deja la ventana que sostiene el
+grab global — no es que llegue con las coordenadas de otro canvas (eso ya
+estaba resuelto), es que Tk nunca se entera de que el mouse se movió. Por
+eso corregir la INTERPRETACIÓN del evento no alcanzaba: había que dejar de
+depender de que el evento llegara.
+
+Corrección: `_poll_hover()` sondea la posición real del cursor
+(`GetCursorPos` de `ctypes`, fuera del sistema de eventos de Tk) cada
+`HOVER_POLL_INTERVAL_MS` (50ms) mientras el menú esté abierto, y le aplica
+el mismo `_dispatch_motion_by_root` de arriba — sin importar si Tk generó
+o no un `<Motion>` real. Solo lo arranca el nivel superior al mostrarse; se
+cancela solo al cerrarse (mismo mecanismo de `_after_ids` que ya usaba la
+animación). El binding de `<Motion>` de Tk se mantiene como complemento
+(cuando sí llega, es más inmediato que esperar el próximo tick), pero ya
+no es la única vía. A diferencia del bug de v0.5.2, esta vez SÍ se pudo
+reproducir y confirmar el fix con movimiento de mouse real simulado
+(`SetCursorPos`, sin ningún clic): el sondeo no depende del sistema de
+eventos de Tk para enterarse de la posición, así que un movimiento real de
+cursor (aunque no genere `<Motion>`) igual lo detecta en el siguiente
+tick. `tests/test_win98_menu.py` agrega una prueba que fuerza un tick de
+`_poll_hover()` con la posición del cursor controlada (sin disparar NINGÚN
+evento de Tk) para fijar este comportamiento.
+
 ### 2.4c Globo de diálogo estilo Windows XP (`app/balloon.py`)
 
 Pedido del usuario: que el globo de "Decime un consejo"/"Animar" tenga el

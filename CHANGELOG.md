@@ -4,6 +4,24 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.5.3] - 2026-07-27
+
+### Corregido
+
+- **El menú seguía trabándose al pasar por "Idioma"** (el mismo reporte
+  reapareció tras el fix de v0.5.2): esa corrección arregló cómo se
+  interpretaba un `<Motion>` que llegaba al canvas equivocado, pero la
+  causa real era más profunda — confirmado que, con el grab global activo,
+  Windows directamente **no genera** el evento `<Motion>` una vez que el
+  mouse deja la ventana que sostiene el grab, así que no alcanzaba con
+  corregir la interpretación del evento si el evento nunca llegaba. Se
+  corrige sondeando la posición real del cursor cada 50ms
+  (`_poll_hover`, vía `GetCursorPos`) mientras el menú esté abierto, en vez
+  de depender pura y exclusivamente del sistema de eventos de Tk
+  (`app/win98_menu.py`, detalle en specs/SPEC.md 2.4b). A diferencia del
+  bug anterior, esta vez sí se pudo reproducir y confirmar en vivo con
+  movimiento de mouse real simulado.
+
 ## [0.5.2] - 2026-07-27
 
 ### Corregido

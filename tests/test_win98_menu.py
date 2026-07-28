@@ -61,8 +61,14 @@ def test_language_submenu_mnemonics_have_no_collisions():
     _assert_no_collisions(labels, _LANGUAGE_MNEMONICS, "language")
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def tk_root():
+    # Un solo tk.Tk() para todo el archivo (no uno por test): crear y
+    # destruir varios tk.Tk() dentro del mismo proceso puede dejar al
+    # intérprete Tcl en un estado roto ("tk wasn't installed properly") --
+    # confirmado corriendo la suite completa. Cada test igual limpia su
+    # propio Win98Menu con close() en un finally, así que reusar la misma
+    # raíz entre tests es seguro.
     root = tk.Tk()
     root.withdraw()
     yield root
@@ -106,5 +112,50 @@ def test_motion_after_submenu_reaches_a_parent_row_below_it(tk_root):
 
         assert menu.highlighted == 1, "el hover deberia haber saltado a la fila del padre, no quedarse en el submenu"
         assert menu.child is None, "el submenu deberia haberse cerrado al mover el highlight del padre"
+    finally:
+        menu.close()
+
+
+def test_hover_polling_updates_highlight_without_any_tk_motion_event(tk_root, monkeypatch):
+    """Bug real (v0.5.3), el mismo reporte del usuario reapareciendo tras el
+    fix de v0.5.2: corregir cómo se interpretaban las coordenadas de
+    <Motion> no alcanzaba, porque el evento real simplemente NO llega en
+    absoluto una vez que el mouse deja la ventana que sostiene el grab
+    global -- confirmado en vivo (real, no sintético) que _on_motion nunca
+    se disparaba al mover el mouse de vuelta a una fila del padre. La
+    solución (_poll_hover) sondea la posición real del cursor
+    (`GetCursorPos`, fuera del sistema de eventos de Tk) en vez de esperar
+    a que Tk le avise. Esta prueba confirma que un solo tick de sondeo, con
+    el cursor "puesto" (vía monkeypatch de _get_cursor_pos, no un mouse de
+    verdad) sobre una fila del padre, mueve el highlight ahí -- sin haber
+    disparado NINGÚN evento de Tk."""
+    import app.win98_menu as win98_menu_module
+
+    below_item = MenuItem(kind="command", label="Below")
+    cascade_item = MenuItem(
+        kind="cascade",
+        label="Cascade",
+        submenu=[MenuItem(kind="command", label="Child A"), MenuItem(kind="command", label="Child B")],
+    )
+    menu = Win98Menu(tk_root, [cascade_item, below_item])
+    try:
+        menu.popup(100, 100)
+        menu._set_highlight(0)
+        menu._open_submenu_for(0, focus_first=True)
+        assert menu.child is not None
+
+        below_row = menu._rows[1]
+        below_x_root = menu._x + menu.full_width // 2
+        below_y_root = menu._y + (below_row["y0"] + below_row["y1"]) // 2
+        monkeypatch.setattr(
+            win98_menu_module, "_get_cursor_pos", lambda: (below_x_root, below_y_root)
+        )
+
+        # Ni un solo <Motion> se genera acá -- _poll_hover es lo único que
+        # puede haber movido el highlight.
+        menu._poll_hover()
+
+        assert menu.highlighted == 1, "el sondeo deberia haber detectado el cursor sobre la fila del padre"
+        assert menu.child is None, "el submenu deberia haberse cerrado"
     finally:
         menu.close()

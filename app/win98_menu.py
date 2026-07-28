@@ -29,6 +29,7 @@ estilo; que ese archivo no tenga esta skin no es un descuido.
 
 from __future__ import annotations
 
+import ctypes
 import tkinter as tk
 import tkinter.font as tkfont
 from collections.abc import Callable
@@ -56,6 +57,21 @@ MIN_WIDTH = 120
 # --- animación "Scroll" (desenrollado hacia abajo) -----------------------------
 ANIMATION_DURATION_MS = 140
 ANIMATION_STEPS = 7
+
+# Cada cuánto (ms) se sondea la posición real del mouse mientras el menú está
+# abierto -- ver _poll_hover más abajo para el motivo: no alcanza con el
+# evento <Motion> de Tk.
+HOVER_POLL_INTERVAL_MS = 50
+
+
+class _POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+
+def _get_cursor_pos() -> tuple[int, int]:
+    point = _POINT()
+    ctypes.windll.user32.GetCursorPos(ctypes.byref(point))
+    return point.x, point.y
 
 
 def _find_font(candidates: tuple[str, ...], size: int) -> tkfont.Font:
@@ -340,6 +356,12 @@ class Win98Menu:
             # padre si el padre sigue abierto (ver close()).
             self.window.grab_set_global()
             self._grabbed = True
+        if self.parent is None:
+            # Un solo sondeo por cadena (lo arranca el nivel superior; ver
+            # _poll_hover) -- no hace falta uno por submenú, porque
+            # _dispatch_motion_by_root ya revisa todos los niveles abiertos
+            # en cada tick.
+            self._poll_hover()
         self._animate_open(0)
 
     def _animate_open(self, step: int) -> None:
@@ -498,17 +520,41 @@ class Win98Menu:
         return None
 
     def _on_motion(self, event: tk.Event) -> None:
-        # No usamos event.x/event.y (coordenadas LOCALES al widget que
-        # nominalmente disparó el evento) -- ver _dispatch_motion_by_root
-        # para el motivo: con el grab activo, Windows puede redirigir el
-        # <Motion> real hacia el Toplevel del submenú aunque el mouse ya esté
-        # de vuelta sobre una fila del padre, y ese evento igual "pertenece"
-        # al canvas del submenú a nivel Tk. Usar la posición absoluta de
-        # pantalla (event.x_root/event.y_root, que siempre es correcta pase
-        # lo que pase con el grab) y recalcular a mano a qué nivel de la
-        # cadena corresponde es la única forma confiable de que el hover
-        # llegue a la fila correcta.
+        # Complementa a _poll_hover (ver _show_at/_poll_hover): un <Motion>
+        # real de Tk, cuando SÍ llega, es más inmediato que esperar el
+        # próximo tick del sondeo (hasta HOVER_POLL_INTERVAL_MS de más),
+        # así que lo aprovechamos igual -- pero no es la fuente de verdad
+        # (ver por qué en el docstring de _poll_hover). No usamos
+        # event.x/event.y (coordenadas LOCALES al widget que nominalmente
+        # disparó el evento): con el grab activo, Windows puede redirigir el
+        # <Motion> hacia el Toplevel del submenú aunque el mouse ya esté de
+        # vuelta sobre una fila del padre, y ese evento igual "pertenece" al
+        # canvas del submenú a nivel Tk. event.x_root/event.y_root siempre
+        # son la posición absoluta real, pase lo que pase con el grab.
         self._dispatch_motion_by_root(event.x_root, event.y_root)
+
+    def _poll_hover(self) -> None:
+        """Red de seguridad ante <Motion> real: confirmado en vivo (bug
+        reportado dos veces, v0.5.2 y esta corrección) que un <Motion> de Tk
+        simplemente NO llega en absoluto una vez que el mouse deja la
+        ventana que sostiene el grab global -- no es que llegue con las
+        coordenadas de OTRO canvas (lo que _dispatch_motion_by_root ya
+        resolvía), es que Windows deja de generarlo del todo para esta app
+        mientras el grab lo tiene un Toplevel distinto de donde está el
+        mouse. Por eso no alcanza con corregir cómo se interpreta el evento:
+        hay que dejar de depender de que el evento llegue. Esto sondea la
+        posición real del cursor (`GetCursorPos`, fuera del sistema de
+        eventos de Tk) cada `HOVER_POLL_INTERVAL_MS` mientras el menú esté
+        abierto, y aplica el mismo despacho por posición absoluta. Solo lo
+        arranca el nivel superior (ver _show_at); se cancela solo al cerrar
+        (los `after()` quedan trackeados en `_after_ids` como cualquier
+        otro)."""
+        if self._closed:
+            return
+        x_root, y_root = _get_cursor_pos()
+        self._dispatch_motion_by_root(x_root, y_root)
+        after_id = self.window.after(HOVER_POLL_INTERVAL_MS, self._poll_hover)
+        self._after_ids.append(after_id)
 
     def _dispatch_motion_by_root(self, x_root: int, y_root: int) -> None:
         """Encuentra, por posición ABSOLUTA de pantalla, a cuál nivel de la
