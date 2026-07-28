@@ -541,6 +541,41 @@ limitación) potencialmente agravado por la carga del entorno de
 automatización, no como un bug adicional del código: no se le aplicó
 ningún cambio de código a partir de esta observación.
 
+**v0.5.2 (bugfix real, sí llegó a publicarse en v0.5.1)**: el usuario
+reportó que al moverse por el menú "no pasa y se queda en el lenguaje" —
+al pasar el mouse por "Idioma" (que abre su submenú al pasar por encima,
+no solo al hacer clic) y después intentar seguir moviéndose hacia abajo
+dentro del nivel superior (ej. hacia "Iniciar con Windows"), el highlight
+quedaba pegado en "Idioma" y su submenú no se cerraba nunca.
+
+Causa raíz: el mismo límite de fondo que el bug de v0.5.1, pero para
+eventos `<Motion>` en vez de clics. Con el grab global activo (ver arriba),
+Windows puede redirigir el `<Motion>` real hacia el `Toplevel` del submenú
+que lo sostiene en ese momento — aunque el mouse ya esté físicamente sobre
+una fila del PADRE. `_on_motion` interpretaba ese evento con las
+coordenadas LOCALES del canvas que "recibió" el evento (`event.x`/
+`event.y`, relativas al canvas del submenú), que nunca podían coincidir
+con ninguna fila del padre: el hover se quedaba pegado en el submenú para
+siempre, sin importar hacia dónde se moviera después el mouse. No se pudo
+reproducir con movimiento de mouse real automatizado (`SetCursorPos`
+tampoco genera `<Motion>` de forma confiable para una ventana de un
+proceso en script en este entorno — la misma limitación de automatización
+ya documentada arriba para `SetForegroundWindow`), así que se verificó
+inyectando la posición de pantalla real del escenario roto directamente
+(un `<Motion>` "recibido" en el canvas del hijo, con coordenadas raíz
+sobre una fila del padre) y confirmando que el highlight terminaba en el
+lugar equivocado antes del fix.
+
+Corrección: `_on_motion` ya no usa las coordenadas locales del evento.
+`_dispatch_motion_by_root(x_root, y_root)` recorre toda la cadena
+(nivel superior + submenús abiertos) comparando la posición ABSOLUTA de
+pantalla contra el rectángulo de cada nivel (`_x`/`_y`/`full_width`/
+`full_height`, ya conocidos desde que ese nivel se mostró), encuentra a
+cuál pertenece de verdad, y le aplica el hover ahí — sin importar en qué
+canvas "aterrizó" el evento a nivel Tk. `tests/test_win98_menu.py` fija
+este escenario exacto (un `<Motion>` que "llega" al hijo pero con
+coordenadas raíz sobre una fila del padre) como prueba de regresión.
+
 ### 2.4c Globo de diálogo estilo Windows XP (`app/balloon.py`)
 
 Pedido del usuario: que el globo de "Decime un consejo"/"Animar" tenga el

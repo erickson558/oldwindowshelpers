@@ -498,12 +498,45 @@ class Win98Menu:
         return None
 
     def _on_motion(self, event: tk.Event) -> None:
-        idx = self._index_at_y(event.y)
-        if idx is not None and idx != self.highlighted:
-            self._set_highlight(idx)
-            item = self.items[idx]
-            if item.kind == "cascade":
-                self._open_submenu_for(idx, focus_first=True)
+        # No usamos event.x/event.y (coordenadas LOCALES al widget que
+        # nominalmente disparó el evento) -- ver _dispatch_motion_by_root
+        # para el motivo: con el grab activo, Windows puede redirigir el
+        # <Motion> real hacia el Toplevel del submenú aunque el mouse ya esté
+        # de vuelta sobre una fila del padre, y ese evento igual "pertenece"
+        # al canvas del submenú a nivel Tk. Usar la posición absoluta de
+        # pantalla (event.x_root/event.y_root, que siempre es correcta pase
+        # lo que pase con el grab) y recalcular a mano a qué nivel de la
+        # cadena corresponde es la única forma confiable de que el hover
+        # llegue a la fila correcta.
+        self._dispatch_motion_by_root(event.x_root, event.y_root)
+
+    def _dispatch_motion_by_root(self, x_root: int, y_root: int) -> None:
+        """Encuentra, por posición ABSOLUTA de pantalla, a cuál nivel de la
+        cadena (el nivel superior o alguno de sus submenús abiertos)
+        corresponde el mouse en este momento, y le aplica el hover ahí --
+        en vez de asumir que el nivel "dueño" es el mismo widget que Tk usó
+        para entregar el evento (ver el comentario en _on_motion)."""
+        root = self
+        while root.parent is not None:
+            root = root.parent
+        node: Win98Menu | None = root
+        while node is not None:
+            if (
+                node._x <= x_root < node._x + node.full_width
+                and node._y <= y_root < node._y + node.full_height
+            ):
+                # `_index_at_y` espera coordenadas relativas al Canvas (que
+                # arranca BORDER píxeles adentro del Toplevel) -- convertimos
+                # la posición absoluta de pantalla a ese mismo sistema.
+                canvas_relative_y = (y_root - node._y) - BORDER
+                idx = node._index_at_y(canvas_relative_y)
+                if idx is not None and idx != node.highlighted:
+                    node._set_highlight(idx)
+                    item = node.items[idx]
+                    if item.kind == "cascade":
+                        node._open_submenu_for(idx, focus_first=True)
+                return
+            node = node.child
 
     def _on_click(self, event: tk.Event) -> None:
         idx = self._index_at_y(event.y)

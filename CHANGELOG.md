@@ -4,6 +4,23 @@ Todos los cambios notables de este proyecto se documentan acá.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
 y este proyecto sigue [SemVer](https://semver.org/lang/es/).
 
+## [0.5.2] - 2026-07-27
+
+### Corregido
+
+- **El menú se quedaba trabado en "Idioma" al moverse por él**: mismo límite
+  de fondo que el bug de v0.5.1, pero para eventos `<Motion>` (pasar el
+  mouse) en vez de clics. Con el grab global activo, Windows puede
+  redirigir el `<Motion>` real hacia el `Toplevel` del submenú que lo
+  sostiene, aunque el mouse ya esté sobre una fila del padre —
+  `_on_motion` interpretaba ese evento con las coordenadas locales del
+  canvas equivocado, y el hover quedaba pegado en "Idioma" para siempre,
+  sin cerrar su submenú ni dejar seguir navegando. Se corrige calculando
+  a qué nivel de la cadena corresponde de verdad la posición ABSOLUTA de
+  pantalla del mouse (`_dispatch_motion_by_root`), en vez de confiar en
+  las coordenadas locales del canvas que recibió el evento
+  (`app/win98_menu.py`, detalle en specs/SPEC.md 2.4b).
+
 ## [0.5.1] - 2026-07-27
 
 ### Corregido
